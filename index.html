@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Webkiosk</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="app" id="appRoot">
+    <header class="header">
+      <h1>Webkiosk</h1>
+    </header>
+    <main class="dashboard" aria-labelledby="dashboardTitle">
+      <h2 id="dashboardTitle" class="sr-only">Startdashboard</h2>
+      <section class="widget weather" aria-labelledby="weatherTitle">
+        <div class="widget-header">
+          <h3 id="weatherTitle">Vejr</h3>
+        </div>
+        <div class="weather-body">
+          <div class="weather-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img" aria-label="sol"><circle cx="32" cy="32" r="16"></circle><line x1="32" y1="2" x2="32" y2="14"></line><line x1="32" y1="50" x2="32" y2="62"></line><line x1="2" y1="32" x2="14" y2="32"></line><line x1="50" y1="32" x2="62" y2="32"></line><line x1="10" y1="10" x2="18" y2="18"></line><line x1="46" y1="46" x2="54" y2="54"></line><line x1="10" y1="54" x2="18" y2="46"></line><line x1="46" y1="18" x2="54" y2="10"></line></svg>
+          </div>
+          <div class="weather-info">
+            <p class="weather-temp" aria-label="Temperatur">21°</p>
+            <p class="weather-status">Klart · Farum</p>
+          </div>
+        </div>
+      </section>
+      <section class="widget clock" aria-labelledby="clockTitle">
+        <div class="widget-header">
+          <h3 id="clockTitle">Ur</h3>
+        </div>
+        <div class="clock-body">
+          <p id="clockTime" class="clock-time" aria-live="polite">00:00</p>
+          <p id="clockDate" class="clock-date">Mandag 1. januar 1970</p>
+        </div>
+      </section>
+      <section class="tiles" aria-label="Handlinger">
+        <button id="openCalendar" class="tile" type="button" aria-label="Åbn kalenderen" title="Åbn familiekalenderen">
+          <span class="tile-label">Kalender · Familieoversigt</span>
+          <span class="tile-icon" aria-hidden="true">📅</span>
+        </button>
+        <button id="openSonos" class="tile" type="button" aria-label="Åbn SONOS" title="Åbn SONOS appen">
+          <span class="tile-label">SONOS · Åbn app</span>
+          <span class="tile-icon" aria-hidden="true">🎵</span>
+        </button>
+        <button id="openHome" class="tile" type="button" aria-label="Åbn Homey" title="Homey placeholder">
+          <span class="tile-label">Hjem · Homey</span>
+          <span class="tile-icon" aria-hidden="true">🏠</span>
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <div id="calendarOverlay" class="calendar-overlay" role="dialog" aria-modal="true" aria-labelledby="calendarTitle" aria-describedby="calendarHelp" hidden>
+    <p id="calendarHelp" class="sr-only">Kalendervisningen åbnes som overlay. Brug Tilbage-knappen for at lukke.</p>
+    <div class="calendar-backdrop"></div>
+    <div class="calendar-container">
+      <header class="calendar-header">
+        <button id="backBtn" type="button" class="back-btn" aria-label="Luk kalenderen">← Tilbage</button>
+        <h2 id="calendarTitle">Familiekalender</h2>
+      </header>
+      <section class="calendar-panel">
+        <iframe id="calFrame" title="Familieoversigt" loading="lazy"></iframe>
+      </section>
+    </div>
+  </div>
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>

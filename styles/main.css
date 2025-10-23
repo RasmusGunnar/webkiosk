@@ -1,0 +1,272 @@
+:root {
+  --bg: #0f172a;
+  --text: #f8fafc;
+  --panel-bg: rgba(30, 41, 59, 0.9);
+  --panel-border: rgba(148, 163, 184, 0.3);
+  --accent: #38bdf8;
+  --accent-strong: #0ea5e9;
+  --shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 55%),
+    linear-gradient(160deg, #020617, #0f172a 60%, #020617 100%);
+  color: var(--text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.widget {
+  grid-column: span 6;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.weather-body {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.weather-icon svg {
+  width: clamp(70px, 12vw, 110px);
+  height: clamp(70px, 12vw, 110px);
+  stroke: var(--accent);
+  stroke-width: 4;
+  fill: rgba(14, 165, 233, 0.2);
+  stroke-linecap: round;
+}
+
+.weather-temp {
+  font-size: clamp(2.5rem, 6vw, 4.2rem);
+  margin: 0;
+}
+
+.weather-status {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1rem, 2.5vw, 1.3rem);
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.clock-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.clock-time {
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-weight: 600;
+  margin: 0;
+}
+
+.clock-date {
+  margin: 0;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.tiles {
+  grid-column: span 12;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.75rem 1.5rem;
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 18px;
+  border: 1px solid transparent;
+  box-shadow: 0 15px 30px rgba(2, 6, 23, 0.4);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.tile:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.35), 0 20px 30px rgba(2, 6, 23, 0.55);
+}
+
+.tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.55);
+}
+
+.tile-label {
+  font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+  font-weight: 500;
+  text-align: left;
+}
+
+.tile-icon {
+  font-size: clamp(1.6rem, 3vw, 2rem);
+}
+
+.calendar-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.calendar-overlay[hidden] {
+  display: none;
+}
+
+.calendar-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(6px);
+}
+
+.calendar-container {
+  position: relative;
+  width: min(1100px, 94vw);
+  max-height: 90vh;
+  background: rgba(15, 23, 42, 0.97);
+  border-radius: 24px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 30px 70px rgba(2, 6, 23, 0.75);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.calendar-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  transition: background 0.2s ease;
+}
+
+.back-btn:hover,
+.back-btn:focus-visible {
+  background: rgba(148, 163, 184, 0.2);
+  outline: none;
+}
+
+.calendar-panel {
+  flex: 1;
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+}
+
+.calendar-panel iframe {
+  border: none;
+  border-radius: 16px;
+  background: #0f172a;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 1100px) {
+  .widget {
+    grid-column: span 12;
+  }
+
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .app {
+    padding: 2.5rem 1.25rem 3rem;
+  }
+
+  .tiles {
+    grid-template-columns: 1fr;
+  }
+
+  .tile {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .header h1 {
+    text-align: center;
+  }
+
+  .calendar-container {
+    width: 94vw;
+    height: 94vh;
+  }
+}

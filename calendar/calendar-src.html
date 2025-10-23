@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Familieoversigt</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #111c2f;
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --panel-border-strong: rgba(148, 163, 184, 0.35);
+      --text: #f8fafc;
+      --muted: rgba(226, 232, 240, 0.7);
+      --accent: #38bdf8;
+      --danger: #f87171;
+      --success: #4ade80;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(150deg, #020617, #0f172a 70%, #020617);
+      color: var(--text);
+      padding: 1.5rem;
+    }
+
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2rem);
+    }
+
+    .week-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .btn {
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text);
+      padding: 0.5rem 1.1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.16);
+    }
+
+    .btn.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.95), rgba(14, 165, 233, 0.8));
+      color: #04101d;
+      font-weight: 600;
+    }
+
+    .btn.primary:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 1), rgba(14, 165, 233, 0.95));
+    }
+
+    .btn.icon {
+      width: 34px;
+      height: 34px;
+      justify-content: center;
+      padding: 0;
+      border-radius: 50%;
+    }
+
+    .people-bar {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .chip {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: rgba(15, 23, 42, 0.55);
+      color: inherit;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .chip.active {
+      border-color: currentColor;
+      background: rgba(56, 189, 248, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .chip-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #020617;
+    }
+
+    .chip span {
+      white-space: nowrap;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .day {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 1rem;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      position: relative;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .day:hover {
+      border-color: var(--panel-border-strong);
+      transform: translateY(-2px);
+    }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+
+    .day-date {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      flex: 1;
+    }
+
+    .item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      border-radius: 14px;
+      padding: 0.75rem;
+      border: 1px solid transparent;
+      background: rgba(15, 23, 42, 0.45);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .item:hover {
+      transform: translateY(-1px);
+      border-color: rgba(248, 250, 252, 0.3);
+    }
+
+    .item::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+
+    .item-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge.done {
+      border-color: rgba(74, 222, 128, 0.6);
+      color: var(--success);
+    }
+
+    .floating-controls {
+      position: fixed;
+      right: clamp(1rem, 3vw, 2rem);
+      bottom: clamp(1rem, 3vw, 2rem);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 230px;
+      box-shadow: 0 20px 45px rgba(2, 6, 23, 0.6);
+    }
+
+    .sync-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .sync-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .sync-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.45rem 0.6rem;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 20;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(520px, 96vw);
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 20px;
+      border: 1px solid var(--panel-border);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      box-shadow: 0 25px 60px rgba(2, 6, 23, 0.75);
+    }
+
+    .modal header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .form-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    select,
+    textarea {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 12px;
+      padding: 0.55rem 0.75rem;
+      color: inherit;
+      min-height: 42px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .danger {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.35);
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .person-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .person-card header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .person-card header .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(148, 163, 184, 0.18);
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .person-card input[type="color"] {
+      width: 100%;
+      height: 44px;
+      border: none;
+      border-radius: 12px;
+      padding: 0;
+    }
+
+    .person-card input[type="file"] {
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: var(--muted);
+    }
+
+    .empty-state {
+      margin: auto;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 900px) {
+      .week-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem 0.75rem 5rem;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .week-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .week-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .floating-controls {
+        width: calc(100% - 1.5rem);
+        right: 0.75rem;
+        bottom: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <h1 id="titleWeek">Familieoversigt – uge 0</h1>
+      <div class="week-actions">
+        <button id="btnPrev" class="btn icon" type="button" title="Forrige uge" aria-label="Gå til forrige uge">⟨</button>
+        <button id="btnWeek" class="btn" type="button" title="Tilbage til aktuel uge">Uge</button>
+        <button id="btnNext" class="btn icon" type="button" title="Næste uge" aria-label="Gå til næste uge">⟩</button>
+        <button id="btnNew" class="btn primary" type="button">+ Ny</button>
+        <button id="btnSettings" class="btn" type="button">Indstillinger</button>
+      </div>
+    </header>
+
+    <nav id="peopleBar" class="people-bar" aria-label="Filtrér personer"></nav>
+
+    <section id="weekGrid" class="week-grid" aria-live="polite"></section>
+
+    <p id="emptyState" class="empty-state" hidden>Ingen aftaler for den valgte visning.</p>
+  </div>
+
+  <aside class="floating-controls" aria-live="polite">
+    <div class="sync-badge" id="syncBadge">Google sync: —</div>
+    <div class="sync-actions">
+      <button id="btnSync" class="btn" type="button">Sync nu</button>
+      <button id="btnSyncHard" class="btn" type="button">Nulstil &amp; sync</button>
+    </div>
+  </aside>
+
+  <div id="dlgBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="modal">
+      <header>
+        <h2 id="dlgTitle">Tilføj</h2>
+        <button id="dlgClose" class="btn icon" type="button" aria-label="Luk dialog">✕</button>
+      </header>
+      <form id="itemForm">
+        <div class="form-grid">
+          <label class="full" for="f_title">Titel
+            <input id="f_title" name="title" type="text" required>
+          </label>
+          <label for="f_type">Type
+            <select id="f_type" name="type">
+              <option value="aktivitet">Aktivitet</option>
+              <option value="opgave">Opgave</option>
+              <option value="fritid">Fritidsinteresse</option>
+            </select>
+          </label>
+          <label for="f_person">Person
+            <select id="f_person" name="person" required></select>
+          </label>
+          <label for="f_date">Dato
+            <input id="f_date" name="date" type="date" required>
+          </label>
+          <label for="f_time">Tidspunkt
+            <input id="f_time" name="time" type="time" step="900">
+          </label>
+          <label for="f_duration">Varighed (min)
+            <input id="f_duration" name="duration" type="number" min="0" step="15">
+          </label>
+          <label class="full" for="f_location">Sted
+            <input id="f_location" name="location" type="text" placeholder="fx Adresse eller stednavn">
+          </label>
+          <label class="full" for="f_note">Note
+            <textarea id="f_note" name="note" placeholder="Ekstra detaljer"></textarea>
+          </label>
+          <label><input id="f_repeat" name="repeat" type="checkbox"> Gentag hver uge</label>
+          <label><input id="f_done" name="done" type="checkbox"> Marker som udført</label>
+        </div>
+        <div class="form-actions">
+          <button id="btnDelete" class="btn danger" type="button">Slet</button>
+          <button id="btnSave" class="btn primary" type="submit">Gem</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="settingsBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal" style="max-width: 720px;">
+      <header>
+        <h2 id="settingsTitle">Indstillinger</h2>
+        <button id="btnSettingsClose" class="btn icon" type="button" aria-label="Luk indstillinger">✕</button>
+      </header>
+      <div class="settings-grid" id="settingsGrid"></div>
+      <div class="form-actions" style="justify-content: flex-end;">
+        <button id="btnSettingsSave" class="btn primary" type="button">Gem</button>
+      </div>
+    </div>
+  </div>
+
+  <template id="chipTemplate">
+    <button class="chip" type="button">
+      <span class="chip-avatar"></span>
+      <span class="chip-name"></span>
+    </button>
+  </template>
+
+  <template id="personCardTemplate">
+    <div class="person-card">
+      <header>
+        <div class="avatar"></div>
+        <div class="meta">
+          <strong class="person-name"></strong>
+          <div class="person-id" style="font-size:0.8rem; color: var(--muted);"></div>
+        </div>
+      </header>
+      <label>Navn
+        <input class="input-name" type="text">
+      </label>
+      <label>Avatar (billede)
+        <input class="input-avatar" type="file" accept="image/*">
+      </label>
+      <label>Farve
+        <input class="input-color" type="color">
+      </label>
+    </div>
+  </template>
+
+  <script>
+    const LS_ITEMS = 'fam_items_v1';
+    const LS_GCAL_INDEX = 'gcal_index';
+    const LS_PREFS = 'fam_people_prefs_v1';
+    const AUTOSYNC_INTERVAL = 120000;
+    const GAS_URL = '';
+
+    const DEFAULT_PEOPLE = [
+      { id: 'all', name: 'Alle', color: '#94a3b8' },
+      { id: 'far', name: 'Far', color: '#38bdf8' },
+      { id: 'mor', name: 'Mor', color: '#f472b6' },
+      { id: 'carl', name: 'Carl', color: '#a855f7' },
+      { id: 'jakob', name: 'Jakob', color: '#facc15' },
+      { id: 'ida', name: 'Ida', color: '#34d399' }
+    ];
+
+    const normaliseType = (value) => {
+      if (!value) return 'aktivitet';
+      const map = {
+        aktivitet: 'aktivitet',
+        opgave: 'opgave',
+        fritidsinteresse: 'fritid',
+        fritid: 'fritid',
+        hobby: 'fritid'
+      };
+      const key = value.toString().toLowerCase();
+      return map[key] || 'aktivitet';
+    };
+
+    const state = {
+      people: [],
+      items: [],
+      activePerson: 'all',
+      currentWeekStart: startOfWeek(new Date()),
+      editingItem: null,
+      calendarLoadedAt: Date.now(),
+      autosyncTimer: null
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPreferences();
+      loadItems();
+      buildPersonSelect();
+      renderPeopleBar();
+      attachEventHandlers();
+      renderWeek();
+      scheduleAutosync();
+    });
+
+    function attachEventHandlers() {
+      document.getElementById('btnPrev').addEventListener('click', () => changeWeek(-1));
+      document.getElementById('btnNext').addEventListener('click', () => changeWeek(1));
+      document.getElementById('btnWeek').addEventListener('click', () => {
+        state.currentWeekStart = startOfWeek(new Date());
+        renderWeek();
+      });
+      document.getElementById('btnNew').addEventListener('click', () => openItemDialog());
+      document.getElementById('btnSettings').addEventListener('click', openSettings);
+      document.getElementById('btnSettingsClose').addEventListener('click', closeSettings);
+      document.getElementById('btnSettingsSave').addEventListener('click', saveSettings);
+      document.getElementById('btnSync').addEventListener('click', () => runSync(false));
+      document.getElementById('btnSyncHard').addEventListener('click', () => runSync(true));
+
+      const form = document.getElementById('itemForm');
+      form.addEventListener('submit', handleSaveItem);
+      document.getElementById('dlgClose').addEventListener('click', closeDialog);
+      document.getElementById('btnDelete').addEventListener('click', handleDeleteItem);
+    }
+
+    function startOfWeek(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = (day === 0 ? -6 : 1) - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function addDays(date, days) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function formatDate(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function loadPreferences() {
+      const raw = localStorage.getItem(LS_PREFS);
+      let stored = [];
+      if (raw) {
+        try {
+          stored = JSON.parse(raw);
+        } catch (err) {
+          console.error('Kunne ikke læse præferencer', err);
+        }
+      }
+      const byId = new Map(stored.map(p => [p.id, p]));
+      state.people = DEFAULT_PEOPLE.map(p => ({
+        ...p,
+        ...(byId.get(p.id) || {})
+      })).map(person => ({ ...person, avatar: person.avatar || '' }));
+      // Ensure "Alle" always first and without avatar color change effect.
+      state.people[0].avatar = '';
+    }
+
+    function loadItems() {
+      const raw = localStorage.getItem(LS_ITEMS);
+      if (!raw) {
+        state.items = [];
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        state.items = Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        console.error('Kunne ikke læse aftaler', err);
+        state.items = [];
+      }
+    }
+
+    function saveItems() {
+      localStorage.setItem(LS_ITEMS, JSON.stringify(state.items));
+    }
+
+    function buildPersonSelect() {
+      const select = document.getElementById('f_person');
+      select.innerHTML = '';
+      state.people.filter(p => p.id !== 'all').forEach(person => {
+        const option = document.createElement('option');
+        option.value = person.id;
+        option.textContent = person.name;
+        select.appendChild(option);
+      });
+    }
+
+    function renderPeopleBar() {
+      const bar = document.getElementById('peopleBar');
+      bar.innerHTML = '';
+      const template = document.getElementById('chipTemplate');
+      state.people.forEach(person => {
+        const node = template.content.firstElementChild.cloneNode(true);
+        const avatar = node.querySelector('.chip-avatar');
+        const name = node.querySelector('.chip-name');
+        avatar.style.background = person.color;
+        avatar.textContent = person.avatar ? '' : person.name.slice(0, 1).toUpperCase();
+        if (person.avatar) {
+          avatar.style.backgroundImage = `url(${person.avatar})`;
+          avatar.style.backgroundSize = 'cover';
+          avatar.style.backgroundPosition = 'center';
+        } else {
+          avatar.style.backgroundImage = '';
+        }
+        name.textContent = person.name;
+        node.dataset.personId = person.id;
+        node.style.borderColor = person.id === 'all' ? 'rgba(148,163,184,0.45)' : person.color;
+        node.style.color = person.id === 'all' ? 'rgba(226,232,240,0.9)' : person.color;
+        if (state.activePerson === person.id) {
+          node.classList.add('active');
+        }
+        node.addEventListener('click', () => {
+          state.activePerson = person.id;
+          renderPeopleBar();
+          renderWeek();
+        });
+        bar.appendChild(node);
+      });
+    }
+
+    function changeWeek(offset) {
+      state.currentWeekStart = addDays(state.currentWeekStart, offset * 7);
+      renderWeek();
+    }
+
+    function getWeekNumber(date) {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+      return { week: weekNo, year: d.getUTCFullYear() };
+    }
+
+    function renderWeek() {
+      const start = state.currentWeekStart;
+      const { week, year } = getWeekNumber(start);
+      document.getElementById('titleWeek').textContent = `Familieoversigt – uge ${week}`;
+      document.getElementById('btnWeek').textContent = `Uge ${week} · ${year}`;
+
+      const grid = document.getElementById('weekGrid');
+      grid.innerHTML = '';
+
+      const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+      const entries = filterItemsForWeek(days[0], days[6]);
+      const hasItems = entries.length > 0;
+      document.getElementById('emptyState').hidden = hasItems;
+
+      days.forEach(day => {
+        const dayNode = document.createElement('article');
+        dayNode.className = 'day';
+        dayNode.tabIndex = 0;
+        dayNode.dataset.date = formatDate(day);
+        dayNode.addEventListener('dblclick', () => openItemDialog({ date: formatDate(day) }));
+        dayNode.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' && ev.target === dayNode) {
+            ev.preventDefault();
+            openItemDialog({ date: formatDate(day) });
+          }
+        });
+
+        const header = document.createElement('div');
+        header.className = 'day-header';
+        const title = document.createElement('span');
+        title.textContent = day.toLocaleDateString('da-DK', { weekday: 'long' });
+        const dateLabel = document.createElement('span');
+        dateLabel.className = 'day-date';
+        dateLabel.textContent = day.toLocaleDateString('da-DK', { day: 'numeric', month: 'numeric' });
+        header.append(title, dateLabel);
+
+        const list = document.createElement('div');
+        list.className = 'items';
+
+        const dayItems = entries.filter(entry => entry.renderDate === formatDate(day));
+        dayItems.sort((a, b) => (a.time || '24:00').localeCompare(b.time || '24:00'));
+        dayItems.forEach(item => {
+          list.appendChild(renderItem(item));
+        });
+
+        dayNode.append(header, list);
+        grid.appendChild(dayNode);
+      });
+    }
+
+    function filterItemsForWeek(start, end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const items = [];
+      state.items.forEach(item => {
+        const itemDate = new Date(item.date + 'T00:00:00');
+        if (item.repeat) {
+          if (itemDate > endDate) return;
+          const baseWeekday = itemDate.getDay() === 0 ? 7 : itemDate.getDay();
+          for (let cursor = new Date(startDate); cursor <= endDate; cursor = addDays(cursor, 1)) {
+            const cursorWeekday = cursor.getDay() === 0 ? 7 : cursor.getDay();
+            if (cursor < itemDate) continue;
+            if (cursorWeekday !== baseWeekday) continue;
+            const diff = Math.round((cursor - itemDate) / 86400000);
+            if (diff % 7 === 0) {
+              items.push({ ...item, renderDate: formatDate(cursor) });
+            }
+          }
+        } else {
+          if (itemDate >= startDate && itemDate <= endDate) {
+            items.push({ ...item, renderDate: item.date });
+          }
+        }
+      });
+
+      return items.filter(item => state.activePerson === 'all' || item.personId === state.activePerson);
+    }
+
+    function renderItem(item) {
+      const node = document.createElement('article');
+      node.className = 'item';
+      const person = state.people.find(p => p.id === item.personId) || state.people[0];
+      node.style.borderColor = person.color;
+      node.style.color = '#fff';
+      node.dataset.itemId = item.id;
+      node.addEventListener('click', () => openItemDialog({ item }));
+
+      const overlay = document.createElement('div');
+      overlay.style.background = person.color;
+      overlay.style.position = 'absolute';
+      overlay.style.inset = '0';
+      overlay.style.opacity = '0.16';
+      overlay.style.borderRadius = '14px';
+      node.appendChild(overlay);
+
+      const top = document.createElement('div');
+      top.className = 'item-top';
+      const title = document.createElement('span');
+      title.textContent = item.title;
+      const time = document.createElement('span');
+      time.textContent = item.time ? item.time : 'Hele dagen';
+      top.append(title, time);
+
+      const meta = document.createElement('div');
+      meta.className = 'item-meta';
+      const type = document.createElement('span');
+      type.className = 'badge';
+      type.textContent = formatType(item.type);
+      meta.appendChild(type);
+
+      const personBadge = document.createElement('span');
+      personBadge.className = 'badge';
+      personBadge.textContent = person.name;
+      meta.appendChild(personBadge);
+
+      if (item.location) {
+        const loc = document.createElement('span');
+        loc.textContent = item.location;
+        meta.appendChild(loc);
+      }
+      if (item.duration) {
+        const dur = document.createElement('span');
+        dur.textContent = `${item.duration} min`;
+        meta.appendChild(dur);
+      }
+      if (item.done) {
+        const done = document.createElement('span');
+        done.className = 'badge done';
+        done.textContent = '✔ Udført';
+        meta.appendChild(done);
+      }
+      if (item.note) {
+        const note = document.createElement('span');
+        note.textContent = item.note;
+        meta.appendChild(note);
+      }
+
+      node.append(top, meta);
+      return node;
+    }
+
+    function formatType(type) {
+      switch (type) {
+        case 'opgave':
+          return 'Opgave';
+        case 'fritid':
+          return 'Fritid';
+        default:
+          return 'Aktivitet';
+      }
+    }
+
+    function openItemDialog({ item = null, date = null } = {}) {
+      state.editingItem = item;
+      const dlg = document.getElementById('dlgBackdrop');
+      dlg.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      const form = document.getElementById('itemForm');
+      form.reset();
+      document.getElementById('btnDelete').style.visibility = item ? 'visible' : 'hidden';
+      document.getElementById('dlgTitle').textContent = item ? 'Redigér' : 'Tilføj';
+
+      if (item) {
+        document.getElementById('f_title').value = item.title;
+        document.getElementById('f_type').value = normaliseType(item.type);
+        document.getElementById('f_person').value = item.personId;
+        document.getElementById('f_date').value = item.date;
+        document.getElementById('f_time').value = item.time || '';
+        document.getElementById('f_duration').value = item.duration || '';
+        document.getElementById('f_location').value = item.location || '';
+        document.getElementById('f_note').value = item.note || '';
+        document.getElementById('f_repeat').checked = Boolean(item.repeat);
+        document.getElementById('f_done').checked = Boolean(item.done);
+      } else {
+        const today = date || formatDate(new Date());
+        document.getElementById('f_type').value = 'aktivitet';
+        document.getElementById('f_person').selectedIndex = 0;
+        document.getElementById('f_date').value = today;
+      }
+
+      setTimeout(() => document.getElementById('f_title').focus(), 50);
+    }
+
+    function closeDialog() {
+      document.getElementById('dlgBackdrop').classList.remove('show');
+      document.body.style.overflow = '';
+      state.editingItem = null;
+    }
+
+    function handleSaveItem(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const data = new FormData(form);
+      const payload = {
+        id: state.editingItem ? state.editingItem.id : `item_${Date.now()}`,
+        title: data.get('title').toString().trim(),
+        type: normaliseType(data.get('type')),
+        personId: data.get('person'),
+        date: data.get('date'),
+        time: data.get('time') || '',
+        duration: data.get('duration') ? Number(data.get('duration')) : '',
+        location: data.get('location') ? data.get('location').toString().trim() : '',
+        note: data.get('note') ? data.get('note').toString().trim() : '',
+        repeat: data.get('repeat') === 'on',
+        done: data.get('done') === 'on',
+        createdAt: state.editingItem ? state.editingItem.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!payload.title) {
+        alert('Titel skal udfyldes.');
+        return;
+      }
+      if (!payload.date) {
+        alert('Dato skal vælges.');
+        return;
+      }
+
+      if (state.editingItem) {
+        const index = state.items.findIndex(item => item.id === state.editingItem.id);
+        if (index >= 0) {
+          state.items[index] = payload;
+        }
+      } else {
+        state.items.push(payload);
+      }
+      saveItems();
+      closeDialog();
+      renderWeek();
+      updateSyncBadge('OK – klar til sync');
+    }
+
+    function handleDeleteItem() {
+      if (!state.editingItem) return;
+      const confirmDelete = confirm('Er du sikker på, at du vil slette denne aftale?');
+      if (!confirmDelete) return;
+      state.items = state.items.filter(item => item.id !== state.editingItem.id);
+      saveItems();
+      closeDialog();
+      renderWeek();
+      updateSyncBadge('Slettet – sync anbefales');
+    }
+
+    function openSettings() {
+      const backdrop = document.getElementById('settingsBackdrop');
+      const grid = document.getElementById('settingsGrid');
+      grid.innerHTML = '';
+      const template = document.getElementById('personCardTemplate');
+      state.people.forEach(person => {
+        if (person.id === 'all') return;
+        const node = template.content.firstElementChild.cloneNode(true);
+        const avatarEl = node.querySelector('.avatar');
+        const nameEl = node.querySelector('.person-name');
+        const idEl = node.querySelector('.person-id');
+        const inputName = node.querySelector('.input-name');
+        const inputAvatar = node.querySelector('.input-avatar');
+        const inputColor = node.querySelector('.input-color');
+
+        nameEl.textContent = person.name;
+        idEl.textContent = `#${person.id}`;
+        inputName.value = person.name;
+        inputColor.value = person.color;
+        avatarEl.style.background = person.color;
+        if (person.avatar) {
+          avatarEl.style.backgroundImage = `url(${person.avatar})`;
+          avatarEl.style.backgroundSize = 'cover';
+          avatarEl.style.backgroundPosition = 'center';
+        } else {
+          avatarEl.textContent = person.name.slice(0, 1).toUpperCase();
+        }
+
+        inputAvatar.addEventListener('change', (ev) => handleAvatarUpload(ev, person.id));
+        inputName.dataset.personId = person.id;
+        inputColor.dataset.personId = person.id;
+        grid.appendChild(node);
+      });
+      backdrop.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function handleAvatarUpload(event, personId) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const person = state.people.find(p => p.id === personId);
+        if (person) {
+          person.avatar = reader.result;
+          const card = event.target.closest('.person-card');
+          if (card) {
+            const avatarEl = card.querySelector('.avatar');
+            if (avatarEl) {
+              avatarEl.style.backgroundImage = `url(${reader.result})`;
+              avatarEl.style.backgroundSize = 'cover';
+              avatarEl.style.backgroundPosition = 'center';
+              avatarEl.textContent = '';
+            }
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsBackdrop').classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    function saveSettings() {
+      const nameInputs = document.querySelectorAll('#settingsGrid .input-name');
+      nameInputs.forEach(input => {
+        const person = state.people.find(p => p.id === input.dataset.personId);
+        if (person) {
+          person.name = input.value.trim() || person.name;
+        }
+      });
+      const colorInputs = document.querySelectorAll('#settingsGrid .input-color');
+      colorInputs.forEach(input => {
+        const person = state.people.find(p => p.id === input.dataset.personId);
+        if (person) {
+          person.color = input.value || person.color;
+        }
+      });
+      const toSave = state.people.filter(p => p.id !== 'all').map(({ id, name, color, avatar }) => ({ id, name, color, avatar: avatar || '' }));
+      localStorage.setItem(LS_PREFS, JSON.stringify(toSave));
+      buildPersonSelect();
+      renderPeopleBar();
+      renderWeek();
+      closeSettings();
+    }
+
+    function updateSyncBadge(message) {
+      const badge = document.getElementById('syncBadge');
+      const timestamp = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+      badge.textContent = `Google sync: ${message} (${timestamp})`;
+    }
+
+    function scheduleAutosync() {
+      if (state.autosyncTimer) clearInterval(state.autosyncTimer);
+      state.autosyncTimer = setInterval(() => runSync(false), AUTOSYNC_INTERVAL);
+    }
+
+    async function runSync(hard) {
+      if (!GAS_URL) {
+        updateSyncBadge('— (GAS URL mangler)');
+        return;
+      }
+      try {
+        updateSyncBadge('Synkroniserer…');
+        const payload = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hardReset: hard,
+            items: state.items,
+            index: hard ? null : JSON.parse(localStorage.getItem(LS_GCAL_INDEX) || 'null')
+          })
+        };
+        const response = await fetch(GAS_URL, payload);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (result.items) {
+          state.items = result.items;
+          saveItems();
+          renderWeek();
+        }
+        if (result.index) {
+          localStorage.setItem(LS_GCAL_INDEX, JSON.stringify(result.index));
+        }
+        updateSyncBadge('OK');
+      } catch (error) {
+        console.error('Sync-fejl', error);
+        updateSyncBadge(`fejl – ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
