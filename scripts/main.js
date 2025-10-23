@@ -398,7 +398,8 @@ const FALLBACK_TEMPLATE = (message) => `<!DOCTYPE html><html lang="da"><head><me
 
 let calendarLoaded = false;
 let calendarError = null;
-let previousFocus = null;
+let previousCalendarFocus = null;
+let previousSettingsFocus = null;
 
 const overlay = document.getElementById('calendarOverlay');
 const backBtn = document.getElementById('backBtn');
@@ -408,6 +409,21 @@ const tiles = Array.from(document.querySelectorAll('.tile'));
 const clockTime = document.getElementById('clockTime');
 const clockDate = document.getElementById('clockDate');
 const calendarBackdrop = document.querySelector('#calendarOverlay .calendar-backdrop');
+const settingsOverlay = document.getElementById('logoSettings');
+const openSettingsBtn = document.getElementById('openSettings');
+const closeSettingsBtn = document.getElementById('closeSettings');
+const cancelSettingsBtn = document.getElementById('cancelSettings');
+const settingsBackdrop = settingsOverlay ? settingsOverlay.querySelector('.settings-backdrop') : null;
+const logoForm = document.getElementById('logoForm');
+
+const LS_TILE_LOGOS = 'kiosk_tile_logos_v1';
+const TILE_CONFIG = [
+  { id: 'openCalendar', key: 'calendar', initial: 'K' },
+  { id: 'openHome', key: 'home', initial: 'H' },
+  { id: 'openSonos', key: 'sonos', initial: 'S' },
+];
+
+let tileLogos = loadTileLogos();
 
 function decodeBase64ToHtml(encoded) {
   const binary = atob(encoded);
@@ -442,20 +458,35 @@ function loadCalendar() {
   }
 }
 
+function lockBodyScroll() {
+  document.body.style.overflow = 'hidden';
+}
+
+function unlockBodyScrollIfNoOverlay() {
+  const calendarHidden = !overlay || overlay.hidden;
+  const settingsHidden = !settingsOverlay || settingsOverlay.hidden;
+  if (calendarHidden && settingsHidden) {
+    document.body.style.overflow = '';
+  }
+}
+
 function showCalendar(show) {
+  if (!overlay) {
+    return;
+  }
   if (show) {
-    previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    previousCalendarFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll();
     loadCalendar();
-    window.setTimeout(() => backBtn.focus(), 50);
+    window.setTimeout(() => backBtn && backBtn.focus(), 50);
   } else {
     overlay.hidden = true;
-    document.body.style.overflow = '';
-    if (previousFocus) {
-      previousFocus.focus();
+    unlockBodyScrollIfNoOverlay();
+    if (previousCalendarFocus) {
+      previousCalendarFocus.focus();
     }
-    previousFocus = null;
+    previousCalendarFocus = null;
   }
 }
 
@@ -473,8 +504,256 @@ function updateClock() {
   const now = new Date();
   const time = now.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
   const dateText = now.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const formattedDate = dateText.charAt(0).toUpperCase() + dateText.slice(1);
   clockTime.textContent = time;
-  clockDate.textContent = dateText.charAt(0).toUpperCase() + dateText.slice(1);
+  clockDate.textContent = formattedDate;
+}
+
+function safeReadStorage(key) {
+  if (typeof window === 'undefined' || !('localStorage' in window)) {
+    return null;
+  }
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    console.warn('Kunne ikke læse fra localStorage', error);
+    return null;
+  }
+}
+
+function safeWriteStorage(key, value) {
+  if (typeof window === 'undefined' || !('localStorage' in window)) {
+    return;
+  }
+  try {
+    if (value === null) {
+      window.localStorage.removeItem(key);
+    } else {
+      window.localStorage.setItem(key, value);
+    }
+  } catch (error) {
+    console.warn('Kunne ikke skrive til localStorage', error);
+  }
+}
+
+function loadTileLogos() {
+  const raw = safeReadStorage(LS_TILE_LOGOS);
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('Kunne ikke parse gemte logoer', error);
+  }
+  return {};
+}
+
+function persistTileLogos() {
+  const entries = Object.entries(tileLogos).filter(([, value]) => typeof value === 'string' && value.length > 0);
+  if (entries.length) {
+    safeWriteStorage(LS_TILE_LOGOS, JSON.stringify(Object.fromEntries(entries)));
+  } else {
+    safeWriteStorage(LS_TILE_LOGOS, null);
+  }
+}
+
+function setTileLogo(key, value) {
+  if (value) {
+    tileLogos[key] = value;
+  } else {
+    delete tileLogos[key];
+  }
+}
+
+function updateLogoElement(element, dataUrl, fallbackText) {
+  if (!element) {
+    return;
+  }
+  const textNode = element.querySelector('.logo-text');
+  if (dataUrl) {
+    element.classList.add('has-image');
+    element.style.setProperty('--logo-image', `url("${dataUrl}")`);
+    if (textNode) {
+      textNode.textContent = '';
+    }
+  } else {
+    element.classList.remove('has-image');
+    element.style.removeProperty('--logo-image');
+    if (textNode) {
+      textNode.textContent = fallbackText || '';
+    }
+  }
+}
+
+function applyTileLogos() {
+  TILE_CONFIG.forEach((tile) => {
+    const tileButton = document.getElementById(tile.id);
+    if (!tileButton) {
+      return;
+    }
+    const logoElement = tileButton.querySelector(`[data-tile-logo="${tile.key}"]`);
+    updateLogoElement(logoElement, tileLogos[tile.key] || null, tile.initial);
+  });
+}
+
+function populateLogoSettings() {
+  if (!settingsOverlay) {
+    return;
+  }
+  TILE_CONFIG.forEach((tile) => {
+    const input = settingsOverlay.querySelector(`[data-logo-input="${tile.key}"]`);
+    const preview = settingsOverlay.querySelector(`[data-logo-preview="${tile.key}"]`);
+    const clearBtn = settingsOverlay.querySelector(`[data-clear-logo="${tile.key}"]`);
+    const stored = tileLogos[tile.key] || null;
+    if (input) {
+      input.value = '';
+      delete input.dataset.preview;
+      delete input.dataset.clear;
+    }
+    updateLogoElement(preview, stored, tile.initial);
+    if (clearBtn) {
+      clearBtn.disabled = !stored;
+    }
+  });
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(typeof reader.result === 'string' ? reader.result : '');
+    };
+    reader.onerror = () => {
+      reject(reader.error || new Error('Fil kunne ikke læses'));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleLogoInputChange(event) {
+  const input = event.currentTarget;
+  const key = input.dataset.logoInput;
+  const tile = TILE_CONFIG.find((item) => item.key === key);
+  if (!tile || !settingsOverlay) {
+    return;
+  }
+  const preview = settingsOverlay.querySelector(`[data-logo-preview="${tile.key}"]`);
+  const clearBtn = settingsOverlay.querySelector(`[data-clear-logo="${tile.key}"]`);
+  const file = input.files && input.files[0];
+  if (!file) {
+    delete input.dataset.preview;
+    delete input.dataset.clear;
+    updateLogoElement(preview, tileLogos[tile.key] || null, tile.initial);
+    if (clearBtn) {
+      clearBtn.disabled = !tileLogos[tile.key];
+    }
+    return;
+  }
+  readFileAsDataURL(file)
+    .then((dataUrl) => {
+      input.dataset.preview = dataUrl;
+      delete input.dataset.clear;
+      updateLogoElement(preview, dataUrl, tile.initial);
+      if (clearBtn) {
+        clearBtn.disabled = false;
+      }
+    })
+    .catch((error) => {
+      console.error('Kunne ikke læse logoet', error);
+      input.value = '';
+    });
+}
+
+function handleClearLogo(event) {
+  const button = event.currentTarget;
+  const key = button.dataset.clearLogo;
+  const tile = TILE_CONFIG.find((item) => item.key === key);
+  if (!tile || !settingsOverlay) {
+    return;
+  }
+  const input = settingsOverlay.querySelector(`[data-logo-input="${tile.key}"]`);
+  const preview = settingsOverlay.querySelector(`[data-logo-preview="${tile.key}"]`);
+  if (input) {
+    input.value = '';
+    delete input.dataset.preview;
+    input.dataset.clear = 'true';
+  }
+  updateLogoElement(preview, null, tile.initial);
+  button.disabled = true;
+}
+
+async function handleLogoFormSubmit(event) {
+  event.preventDefault();
+  await Promise.all(
+    TILE_CONFIG.map(async (tile) => {
+      if (!logoForm) {
+        return;
+      }
+      const input = logoForm.querySelector(`[data-logo-input="${tile.key}"]`);
+      if (!input) {
+        return;
+      }
+      if (input.dataset.clear === 'true') {
+        setTileLogo(tile.key, null);
+        return;
+      }
+      if (input.dataset.preview) {
+        setTileLogo(tile.key, input.dataset.preview);
+        return;
+      }
+      if (input.files && input.files[0]) {
+        try {
+          const dataUrl = await readFileAsDataURL(input.files[0]);
+          setTileLogo(tile.key, dataUrl);
+        } catch (error) {
+          console.error('Kunne ikke læse logoet', error);
+        }
+      }
+    })
+  );
+  persistTileLogos();
+  applyTileLogos();
+  closeSettings();
+}
+
+function openSettings() {
+  if (!settingsOverlay) {
+    return;
+  }
+  previousSettingsFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  populateLogoSettings();
+  settingsOverlay.hidden = false;
+  if (openSettingsBtn) {
+    openSettingsBtn.setAttribute('aria-expanded', 'true');
+  }
+  lockBodyScroll();
+  window.setTimeout(() => {
+    if (closeSettingsBtn) {
+      closeSettingsBtn.focus();
+    }
+  }, 40);
+}
+
+function closeSettings() {
+  if (!settingsOverlay) {
+    return;
+  }
+  settingsOverlay.hidden = true;
+  if (openSettingsBtn) {
+    openSettingsBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (logoForm) {
+    logoForm.reset();
+  }
+  unlockBodyScrollIfNoOverlay();
+  if (previousSettingsFocus) {
+    previousSettingsFocus.focus();
+  }
+  previousSettingsFocus = null;
 }
 
 function openSonos() {
@@ -508,22 +787,64 @@ function setupTiles() {
   tiles.forEach(ensureTileAccessibility);
 }
 
-openCalendarBtn.addEventListener('click', () => showCalendar(true));
-backBtn.addEventListener('click', () => showCalendar(false));
+if (openCalendarBtn) {
+  openCalendarBtn.addEventListener('click', () => showCalendar(true));
+}
+if (backBtn) {
+  backBtn.addEventListener('click', () => showCalendar(false));
+}
 if (calendarBackdrop) {
   calendarBackdrop.addEventListener('click', () => showCalendar(false));
 }
-document.getElementById('openSonos').addEventListener('click', openSonos);
-document.getElementById('openHome').addEventListener('click', openHomeyPlaceholder);
+const sonosButton = document.getElementById('openSonos');
+if (sonosButton) {
+  sonosButton.addEventListener('click', openSonos);
+}
+const homeButton = document.getElementById('openHome');
+if (homeButton) {
+  homeButton.addEventListener('click', openHomeyPlaceholder);
+}
+
+if (openSettingsBtn) {
+  openSettingsBtn.addEventListener('click', openSettings);
+}
+if (closeSettingsBtn) {
+  closeSettingsBtn.addEventListener('click', closeSettings);
+}
+if (cancelSettingsBtn) {
+  cancelSettingsBtn.addEventListener('click', closeSettings);
+}
+if (settingsBackdrop) {
+  settingsBackdrop.addEventListener('click', closeSettings);
+}
+if (logoForm) {
+  logoForm.addEventListener('submit', handleLogoFormSubmit);
+}
+if (settingsOverlay) {
+  settingsOverlay.querySelectorAll('[data-logo-input]').forEach((input) => {
+    input.addEventListener('change', handleLogoInputChange);
+  });
+  settingsOverlay.querySelectorAll('[data-clear-logo]').forEach((button) => {
+    button.addEventListener('click', handleClearLogo);
+  });
+}
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !overlay.hidden) {
-    event.preventDefault();
-    showCalendar(false);
+  if (event.key === 'Escape') {
+    if (settingsOverlay && !settingsOverlay.hidden) {
+      event.preventDefault();
+      closeSettings();
+      return;
+    }
+    if (overlay && !overlay.hidden) {
+      event.preventDefault();
+      showCalendar(false);
+    }
   }
 });
 
 setupTiles();
+applyTileLogos();
 updateClock();
 window.setInterval(updateClock, 1000);
 
