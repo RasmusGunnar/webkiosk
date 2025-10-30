@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Familieoversigt</title>
+  <style>
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Helvetica,Arial;background:#f7f7fb;color:#0f172a}
+    .wrap{max-width:960px;margin:0 auto;padding:16px}
+    .muted{color:#6b7280}
+    .bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .bar input, .bar button{padding:10px 12px;border-radius:12px;border:1px solid #e6e8ec;font-size:14px}
+    .bar button{background:#0f172a;color:#fff;border-color:#0f172a;cursor:pointer}
+    .list{margin-top:16px;background:#fff;border:1px solid #e6e8ec;border-radius:16px}
+    .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid #eef0f4}
+    .row:first-child{border-top:0}
+    .row input[type="checkbox"]{width:18px;height:18px}
+    .grow{flex:1}
+    .date{min-width:120px;color:#334155}
+    .empty{padding:20px;color:#6b7280;text-align:center}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;margin-left:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Familieoversigt <span id="hidPill" class="pill"></span></h1>
+    <div class="muted">Realtime synk via Firebase Firestore. (Denne liste er kun en fallback-visning.)</div>
+
+    <div class="bar" id="fallbackBar">
+      <input id="titleIn" placeholder="Titel" />
+      <input id="dateIn" type="date" />
+      <input id="notesIn" placeholder="Noter (valgfri)" />
+      <button id="addBtn">Tilføj</button>
+    </div>
+
+    <div class="list" id="fallbackList"><div class="empty">Ingen punkter endnu.</div></div>
+  </div>
+
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <script>
+  /* === Firebase config (identisk med Webkiosk) === */
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_gh8y-V6kkl95hRzb0ldBxpKWFY5bAck",
+    authDomain: "webkiosk-e5d32.firebaseapp.com",
+    projectId: "webkiosk-e5d32",
+    storageBucket: "webkiosk-e5d32.firebasestorage.app",
+    messagingSenderId: "920175197353",
+    appId: "1:920175197353:web:c3520e9a3ab8146ec4fdb8",
+    measurementId: "G-X6LHDEPS8H"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth=firebase.auth(), db=firebase.firestore();
+
+  /* === HID === */
+  const HID=(new URLSearchParams(location.search).get('hid')||'DEFAULT').toUpperCase();
+  document.getElementById('hidPill').textContent=HID;
+
+  /* === Kalender collection === */
+  const itemsCol=db.collection('households').doc(HID).collection('calendar').doc('v1').collection('items');
+
+  /* === API til din egen UI === */
+  const itemsListeners=new Set();
+  window.CalendarData={
+    hid:HID,
+    onItems(cb){itemsListeners.add(cb);return()=>itemsListeners.delete(cb);},
+    async addItem({title,date,notes=''}){return itemsCol.add({title:title||'',date:date||null,notes:notes||'',done:false,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});},
+    async updateItem(id,patch){patch=Object.assign({},patch,{updatedAt:firebase.firestore.FieldValue.serverTimestamp()});return itemsCol.doc(id).set(patch,{merge:true});},
+    async deleteItem(id){return itemsCol.doc(id).delete();}
+  };
+
+  /* === Realtime feed === */
+  auth.signInAnonymously().then(()=>{
+    itemsCol.orderBy('createdAt','asc').onSnapshot(snap=>{
+      const data=[]; snap.forEach(d=>data.push({id:d.id,...d.data()}));
+      itemsListeners.forEach(cb=>{try{cb(data);}catch{}});
+      if(itemsListeners.size===0) renderFallback(data);
+    });
+  }).catch(e=>console.error('[auth]',e));
+
+  /* === Fallback UI (kan fjernes) === */
+  const $=id=>document.getElementById(id);
+  function renderFallback(items){
+    const box=$('fallbackList'); box.innerHTML='';
+    if(!items.length){box.innerHTML='<div class="empty">Ingen punkter endnu.</div>';return;}
+    for(const it of items){
+      const row=document.createElement('div');row.className='row';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!it.done;cb.onchange=()=>window.CalendarData.updateItem(it.id,{done:cb.checked});
+      const title=document.createElement('div');title.className='grow';title.textContent=it.title||'';
+      const date=document.createElement('div');date.className='date';date.textContent=it.date||'';
+      const del=document.createElement('button');del.textContent='Slet';del.style.background='#ef4444';del.style.borderColor='#ef4444';del.style.color='#fff';del.style.cursor='pointer';del.style.borderRadius='10px';del.style.padding='8px 10px';del.onclick=()=>window.CalendarData.deleteItem(it.id);
+      row.append(cb,title,date,del);box.append(row);
+    }
+  }
+  $('addBtn').onclick=()=>{const t=$('titleIn').value.trim(),d=$('dateIn').value,n=$('notesIn').value.trim();if(!t){alert('Titel mangler');return;}window.CalendarData.addItem({title:t,date:d,notes:n}).then(()=>{$('titleIn').value='';$('notesIn').value='';});};
+
+  /* === Avatar-URL pr. familie-medlem (GitHub Raw) – synkes i Firestore ===
+     Kræver at din Indstillinger • Familie-UI har en DOM-struktur med en række pr. person,
+     hvor der findes et navn og et file-input. Scriptet tilføjer et ekstra URL-felt.
+  */
+  (function(){
+    const col=db.collection('households').doc(HID).collection('calendar').doc('v1').collection('profiles');
+
+    function rowKey(row){
+      const id=row.getAttribute('data-person-id'); if(id) return id.trim();
+      const nameInput=row.querySelector('input[type="text"], input[name*="name"], input[name*="navn"]');
+      const name=(nameInput?.value||nameInput?.placeholder||nameInput?.getAttribute('value')||'').trim();
+      return name||('person_'+Math.random().toString(36).slice(2,7));
+    }
+
+    function enhanceRows(){
+      document.querySelectorAll('.dialog .family-row, .dialog .row, .dialog li, .dialog .person-row').forEach(row=>{
+        const file=row.querySelector('input[type="file"]');
+        if(!file || row.querySelector('.avatar-url')) return;
+
+        const url=document.createElement('input');
+        url.type='url';
+        url.placeholder='https://raw.githubusercontent.com/<user>/<repo>/<branch>/assets/billede.png';
+        url.className='avatar-url';
+        url.style.marginLeft='8px'; url.style.flex='1 1 280px';
+        url.style.padding='10px 12px'; url.style.borderRadius='12px'; url.style.border='1px solid #e6e8ec';
+        file.insertAdjacentElement('afterend',url);
+
+        const img=row.querySelector('img, .avatar img, .photo');
+        const key=rowKey(row);
+
+        col.doc(key).get().then(s=>{const u=s.exists?(s.data().avatarUrl||''):''; if(u){url.value=u; if(img) img.src=u;}});
+
+        url.addEventListener('change',async ()=>{
+          const val=url.value.trim();
+          try{
+            if(img && val) img.src=val;
+            await col.doc(key).set({avatarUrl:val,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+          }catch(e){console.error('[avatarUrl write]',e);alert('Kunne ikke gemme avatar-URL');}
+        });
+      });
+    }
+
+    const settings=document.getElementById('settingsModal')||document;
+    const ro=new MutationObserver(enhanceRows);
+    ro.observe(settings,{childList:true,subtree:true});
+    if(document.readyState!=='loading') enhanceRows();
+    else document.addEventListener('DOMContentLoaded',enhanceRows);
+  })();
+  </script>
+<!-- 🔧 Firestore-bridge (UI-neutral) – indsæt lige før </body> -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  /* ====== KONFIG ====== */
+  const DBG = true;                          // sæt false for tavs log
+  const LS_ITEMS = "fam_items_v1";           // <- din kalender bruger denne
+  const HID = (new URLSearchParams(location.search).get('hid')||'DEFAULT').toUpperCase();
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_gh8y-V6kkl95hRzb0ldBxpKWFY5bAck",
+    authDomain: "webkiosk-e5d32.firebaseapp.com",
+    projectId: "webkiosk-e5d32",
+    storageBucket: "webkiosk-e5d32.firebasestorage.app",
+    messagingSenderId: "920175197353",
+    appId: "1:920175197353:web:c3520e9a3ab8146ec4fdb8",
+    measurementId: "G-X6LHDEPS8H"
+  };
+
+  const log=(...a)=>DBG&&console.log("[FS-Bridge]",...a);
+  const warn=(...a)=>DBG&&console.warn("[FS-Bridge]",...a);
+  const error=(...a)=>console.error("[FS-Bridge]",...a);
+
+  /* ====== INIT ====== */
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  const col = db.collection("households").doc(HID)
+                .collection("calendar").doc("v1").collection("items");
+
+  // Sortering uden komposit index-krav
+  let qItems = col.orderBy("createdAt","asc");
+
+  /* ====== HJÆLPERE ====== */
+  function parseJSON(x){ try{return JSON.parse(x);}catch{return null;} }
+  function readLocal(){ return (parseJSON(localStorage.getItem(LS_ITEMS))||[]).map(norm); }
+  function writeLocal(items){
+    const s = JSON.stringify(items||[]);
+    localStorage.setItem(LS_ITEMS, s);
+    // Forsøg at trigge din app til at re-render
+    try { if (typeof render === "function") render(); } catch {}
+    try {
+      const ev = new Event("storage"); ev.key = LS_ITEMS; ev.newValue = s; window.dispatchEvent(ev);
+    } catch {}
+  }
+  function norm(it){
+    // hold dig til dine feltnavne
+    return {
+      id: it.id || null,
+      title: String(it.title||"(uden titel)"),
+      date: String(it.date||""),
+      time: String(it.time||""),
+      durationMin: Number.isFinite(it.durationMin)?it.durationMin:0,
+      location: String(it.location||""),
+      note: String(it.note||""),
+      type: String(it.type||"Aktivitet"),
+      person: String(it.person||"Alle"),
+      repeatWeekly: !!it.repeatWeekly,
+      done: !!it.done,
+      source: it.source || "local"
+    };
+  }
+  // unik nøgle til dedup (ingen garanti men robust nok)
+  const keyFor = (it)=>[it.title,it.date,it.time,it.person,it.type,it.location,it.note].join("|");
+
+  /* ====== PUSH LOKAL → FS ====== */
+  let pushTimer=null;
+  function queuePush(items){ clearTimeout(pushTimer); pushTimer = setTimeout(()=>pushAll(items), 350); }
+  async function pushAll(items){
+    try{
+      const snap = await col.get();
+      const existing = new Map();
+      snap.forEach(d=>existing.set(keyFor(d.data()), {id:d.id, ...d.data()}));
+      const batch = db.batch();
+      for(const raw of items||[]){
+        const it = norm(raw);
+        const k = keyFor(it);
+        if(existing.has(k)){
+          const ex = existing.get(k);
+          const patch = {};
+          if(!!ex.done !== !!it.done) patch.done = !!it.done;
+          if(String(ex.note||"") !== String(it.note||"")) patch.note = String(it.note||"");
+          if(Object.keys(patch).length){
+            patch.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            batch.set(col.doc(ex.id), patch, {merge:true});
+          }
+        }else{
+          batch.set(col.doc(), {
+            ...it,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }
+      await batch.commit();
+      log("Pushed", (items||[]).length, "items → Firestore");
+    }catch(e){ error("pushAll", e); }
+  }
+
+  // Patch kun setItem for vores nøgle (din app kalder saveItems() → setItem)
+  (function patchSetItem(){
+    const _set = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(k,v){
+      const r = _set(k,v);
+      if(k===LS_ITEMS){
+        try{ queuePush((parseJSON(v)||[]).map(norm)); }catch(e){ warn("setItem parse", e); }
+      }
+      return r;
+    };
+  })();
+
+  /* ====== START ====== */
+  auth.signInAnonymously().then(async ()=>{
+    log("Anon auth OK · HID =", HID);
+
+    // Første seed-logik
+    const localArr = readLocal();
+    const fsSnap   = await col.limit(1).get();
+
+    if(localArr.length && fsSnap.empty){
+      log("Seeding Firestore fra lokal…", localArr.length);
+      await pushAll(localArr);
+    }else if(!localArr.length && !fsSnap.empty){
+      log("Seeding lokal fra Firestore…");
+      const all = await qItems.get();
+      const arr=[]; all.forEach(d=>arr.push(norm(d.data())));
+      writeLocal(arr);
+    }
+
+    // Realtime → lokal
+    qItems.onSnapshot(
+      snap=>{
+        const arr=[]; snap.forEach(d=>arr.push(norm(d.data())));
+        writeLocal(arr);
+        log("Realtime items:", arr.length);
+      },
+      e=>{
+        // Fallback hvis index-krav (skulle ikke ramme med createdAt, men bare in case)
+        warn("Snapshot error", e.code||e.message);
+        if(String(e.message||"").includes("index")){
+          qItems = col.orderBy("createdAt","asc");
+          qItems.onSnapshot(s=>{ const a=[]; s.forEach(d=>a.push(norm(d.data()))); writeLocal(a); log("Realtime (fallback) items:", a.length); });
+        }
+      }
+    );
+  }).catch(e=>error("Auth error", e));
+
+  // Valgfrit: hurtig test → ?caltest=1
+  if (new URLSearchParams(location.search).get("caltest")==="1") {
+    col.add({
+      title:"Synk-test", date:new Date().toISOString().slice(0,10), time:"",
+      durationMin:0, location:"", note:"auto", type:"Aktivitet", person:"Alle",
+      repeatWeekly:false, done:false, source:"local",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(()=>log("Test item skrevet")).catch(error);
+  }
+})();
+</script>
+<!-- 🔧 Firestore-bridge (UI-neutral) – indsæt lige før </body> -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  const DBG = false; // sæt true for console logs
+  const log=(...a)=>{ if(DBG) console.log('[FS-Bridge]',...a); };
+  const warn=(...a)=>{ if(DBG) console.warn('[FS-Bridge]',...a); };
+  const err =(...a)=>console.error('[FS-Bridge]',...a);
+
+  // 1) LocalStorage-nøgle (overstyr via <meta name="calendar-localstorage-key" content="...">)
+  const metaKey = document.querySelector('meta[name="calendar-localstorage-key"]')?.content?.trim();
+  const LS_KEY  = metaKey || 'fam_items_v1';
+
+  // 2) HID fra URL
+  const HID = (new URLSearchParams(location.search).get('hid')||'DEFAULT').toUpperCase();
+
+  // 3) Firebase config (samme som Webkiosk)
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_gh8y-V6kkl95hRzb0ldBxpKWFY5bAck",
+    authDomain: "webkiosk-e5d32.firebaseapp.com",
+    projectId: "webkiosk-e5d32",
+    storageBucket: "webkiosk-e5d32.firebasestorage.app",
+    messagingSenderId: "920175197353",
+    appId: "1:920175197353:web:c3520e9a3ab8146ec4fdb8",
+    measurementId: "G-X6LHDEPS8H"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  // 4) Firestore refs (ingen komposit-index påkrævet)
+  const col   = db.collection('households').doc(HID).collection('calendar').doc('v1').collection('items');
+  let   qItems= col.orderBy('createdAt','asc');
+
+  // 5) Utils
+  const parse = (v)=>{ try{return JSON.parse(v);}catch{return null;} };
+  const readLocal = ()=> (parse(localStorage.getItem(LS_KEY))||[]);
+  const writeLocal= (arr)=>{
+    const s = JSON.stringify(arr||[]);
+    localStorage.setItem(LS_KEY, s);
+    // Nænsomt forsøg på at trigge din eksisterende render
+    try{ if(typeof render==='function') render(); }catch{}
+    try{ const ev=new Event('storage'); ev.key=LS_KEY; ev.newValue=s; window.dispatchEvent(ev); }catch{}
+  };
+
+  // Vi spejler ALLE felter i `data`. Derudover kopierer vi få felter op til top-niveau for søgning/sortering.
+  const pick = (o,k)=> o!=null && o[k]!=null ? o[k] : '';
+  const signature = (d)=> [pick(d,'title')||pick(d,'titel'),
+                           pick(d,'date')||pick(d,'dato'),
+                           pick(d,'time')||'',
+                           pick(d,'person')||pick(d,'navn')||'',
+                           pick(d,'type')||'',
+                           pick(d,'location')||'',
+                           pick(d,'note')||pick(d,'noter')||''].join('|');
+
+  // 6) Push lokal -> FS (debounced)
+  let pushTimer=null;
+  function queuePush(items){ clearTimeout(pushTimer); pushTimer=setTimeout(()=>pushAll(items), 350); }
+  async function pushAll(items){
+    try{
+      const snap = await col.get();
+      const existing = new Map();
+      snap.forEach(d=>{
+        const v=d.data();
+        const sig = v.sig || signature(v.data||v);
+        existing.set(sig, {id:d.id, ...v});
+      });
+
+      const batch = db.batch();
+      for(const raw of (items||[])){
+        const data = Object(raw); // hele objektet som din app bruger
+        const sig  = signature(data);
+        if(existing.has(sig)){
+          // opdater small stuff (done/note mv.) hvis ændret
+          const ex  = existing.get(sig);
+          const cur = ex.data || ex;
+          const patch = {};
+          if(!!cur.done !== !!data.done)     patch.done = !!data.done;
+          if(String(cur.note||'') !== String(data.note||'')) patch.note = String(data.note||'');
+          if(Object.keys(patch).length){
+            patch.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            batch.set(col.doc(ex.id), patch, {merge:true});
+          }
+        }else{
+          batch.set(col.doc(), {
+            // spejl primære felter for evt. fremtidig sortering/filtrering
+            title: pick(data,'title')||pick(data,'titel')||'',
+            date:  pick(data,'date') ||pick(data,'dato')  ||'',
+            time:  pick(data,'time') ||'',
+            person:pick(data,'person')||pick(data,'navn')||'',
+            type:  pick(data,'type') ||'',
+            note:  pick(data,'note') ||pick(data,'noter') ||'',
+            done:  !!data.done,
+            sig:   sig,
+            data:  data, // ← hele din post her
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }
+      await batch.commit();
+      log('Pushed', (items||[]).length, 'items');
+    }catch(e){ err('pushAll', e); }
+  }
+
+  // Patch setItem for KUN vores nøgle (din UI kalder i forvejen setItem)
+  (function patchSetItem(){
+    const _set = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(k,v){
+      const r = _set(k,v);
+      if(k===LS_KEY){
+        try{ queuePush(parse(v)||[]); }catch(e){ warn('setItem parse', e); }
+      }
+      return r;
+    };
+  })();
+
+  // 7) Start
+  auth.signInAnonymously().then(async ()=>{
+    log('Anon OK · HID', HID);
+
+    // Seed: hvem er tom først gang?
+    const localArr = readLocal();
+    const hasFS    = !(await col.limit(1).get()).empty;
+
+    if(localArr.length && !hasFS){
+      log('Seed FS fra lokal', localArr.length);
+      await pushAll(localArr);
+    }else if(!localArr.length && hasFS){
+      log('Seed lokal fra FS');
+      const all=await qItems.get(), arr=[];
+      all.forEach(d=> arr.push((d.data().data)||d.data()) );
+      writeLocal(arr);
+    }
+
+    // Realtime → lokal
+    qItems.onSnapshot(s=>{
+      const arr=[]; s.forEach(d=> arr.push((d.data().data)||d.data()) );
+      writeLocal(arr);
+      log('Realtime', arr.length);
+    }, e=>{
+      warn('snapshot', e.code||e.message);
+      // fallback – burde ikke være nødvendig m. createdAt
+      qItems = col.orderBy('createdAt','asc');
+      qItems.onSnapshot(ss=>{
+        const a=[]; ss.forEach(d=>a.push((d.data().data)||d.data()));
+        writeLocal(a);
+        log('Realtime(fallback)', a.length);
+      });
+    });
+  }).catch(err);
+
+  // Valgfrit: ?caltest=1
+  if (new URLSearchParams(location.search).get('caltest')==='1') {
+    col.add({
+      title:'Synk-test', date:new Date().toISOString().slice(0,10),
+      done:false, note:'auto', sig:'test-'+Date.now(), data:{title:'Synk-test',date:new Date().toISOString().slice(0,10),note:'auto',done:false},
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(()=>log('test write ok')).catch(err);
+  }
+})();
+</script>
+<!-- 🔧 Firestore-bridge · UI-neutral · indsæt lige før </body> -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  // ===== KONFIG =====
+  const LS_KEY = "fam_items_v1";                 // ← din kalenderliste
+  const HID = (new URLSearchParams(location.search).get("hid")||"DEFAULT").toUpperCase();
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_gh8y-V6kkl95hRzb0ldBxpKWFY5bAck",
+    authDomain: "webkiosk-e5d32.firebaseapp.com",
+    projectId: "webkiosk-e5d32",
+    storageBucket: "webkiosk-e5d32.firebasestorage.app",
+    messagingSenderId: "920175197353",
+    appId: "1:920175197353:web:c3520e9a3ab8146ec4fdb8",
+    measurementId: "G-X6LHDEPS8H"
+  };
+
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  // Firestore path (intet komposit-indeks påkrævet)
+  const col   = db.collection("households").doc(HID).collection("calendar").doc("v1").collection("items");
+  let   q     = col.orderBy("createdAt","asc");
+
+  // ===== Utils (gem/indlæs hele objektlisten) =====
+  const J = { p:(v)=>{ try{return JSON.parse(v);}catch(_){return null;} }, s:(v)=>JSON.stringify(v||[]) };
+  const readLocal  = ()=> J.p(localStorage.getItem(LS_KEY)) || [];
+  const writeLocal = (arr)=>{
+    localStorage.setItem(LS_KEY, J.s(arr));
+    try{ if(typeof render==="function") render(); }catch(_){}
+    try{ const e=new Event("storage"); e.key=LS_KEY; e.newValue=J.s(arr); window.dispatchEvent(e); }catch(_){}
+  };
+
+  // stabil signatur til at undgå dubletter på tværs af enheder
+  const g = (o,k)=> o!=null && o[k]!=null ? o[k] : "";
+  const sig = (d)=>[
+    g(d,"id")||"", g(d,"title")||g(d,"titel")||"",
+    g(d,"date")||g(d,"dato")||"", g(d,"time")||"",
+    g(d,"person")||g(d,"navn")||"", g(d,"type")||"",
+    g(d,"location")||"", g(d,"note")||g(d,"noter")||""
+  ].join("|");
+
+  // ===== Push lokal -> FS (debounced) =====
+  let t=null;
+  function queuePush(items){ clearTimeout(t); t=setTimeout(()=>push(items), 300); }
+  async function push(items){
+    try{
+      const snap = await col.get();
+      const ex = new Map();
+      snap.forEach(d=>{ const v=d.data(); ex.set(v.sig || sig(v.data||{}), {id:d.id, ...v}); });
+
+      const b = db.batch();
+      for(const it of (items||[])){
+        const s = sig(it);
+        if(ex.has(s)){
+          // kun små patches (done/note) så vi ikke overskriver andre felter
+          const cur = ex.get(s).data || {};
+          const patch = {};
+          if(!!cur.done !== !!it.done) patch.done = !!it.done;
+          if(String(cur.note||"") !== String(it.note||"")) patch.note = String(it.note||"");
+          if(Object.keys(patch).length){
+            patch.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            b.set(col.doc(ex.get(s).id), patch, {merge:true});
+          }
+        }else{
+          // ny post – gem hele objektet under data + flade felter til søgning
+          b.set(col.doc(), {
+            sig: s,
+            title: g(it,"title")||g(it,"titel")||"",
+            date: g(it,"date")||g(it,"dato")||"",
+            time: g(it,"time")||"",
+            person: g(it,"person")||g(it,"navn")||"",
+            type: g(it,"type")||"",
+            note: g(it,"note")||g(it,"noter")||"",
+            done: !!it.done,
+            data: it,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }
+      await b.commit();
+    }catch(e){ console.error("[FS-Bridge] push", e); }
+  }
+
+  // Patch KUN setItem for vores nøgle (din app kalder i forvejen saveItems())
+  (function(){
+    const _set = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(k,v){
+      const r=_set(k,v);
+      if(k===LS_KEY){
+        try{ queuePush(J.p(v)||[]); }catch(_){}
+      }
+      return r;
+    };
+  })();
+
+  // ===== Start: seed & realtime =====
+  auth.signInAnonymously().then(async ()=>{
+    const loc = readLocal();
+    const hasFS = !(await col.limit(1).get()).empty;
+
+    if(loc.length && !hasFS){ await push(loc); }
+    else if(!loc.length && hasFS){
+      const all = await q.get(); const arr=[];
+      all.forEach(d=> arr.push((d.data().data)||{}));
+      writeLocal(arr);
+    }
+
+    q.onSnapshot(s=>{
+      const arr=[]; s.forEach(d=> arr.push((d.data().data)||{}));
+      writeLocal(arr);
+    }, e=>{
+      console.warn("[FS-Bridge] snapshot", e.code||e.message);
+      // fallback (burde ikke trigges med createdAt)
+      q = col.orderBy("createdAt","asc");
+      q.onSnapshot(ss=>{
+        const a=[]; ss.forEach(d=>a.push((d.data().data)||{}));
+        writeLocal(a);
+      });
+    });
+  }).catch(e=>console.error("[FS-Bridge] auth", e));
+
+  // Valgfrit: ?caltest=1 for hurtig write-test
+  if(new URLSearchParams(location.search).get("caltest")==="1"){
+    col.add({
+      sig: "test-"+Date.now(),
+      title: "Synk-test", date: new Date().toISOString().slice(0,10),
+      time:"", person:"Alle", type:"Aktivitet", note:"auto", done:false,
+      data: {id:"loc:"+Date.now(), title:"Synk-test", date:new Date().toISOString().slice(0,10), person:"Alle", type:"Aktivitet", note:"auto", done:false},
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+})();
+</script>
+</body>
+</html>

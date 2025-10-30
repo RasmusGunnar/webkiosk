@@ -1,0 +1,37 @@
+<!-- /index.html (RasmusGunnar/test) -->
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Loader…</title>
+  <meta name="robots" content="noindex"/>
+  <script>
+    (function () {
+      // 0) VÆLG DIT FASTE HID HER
+      var FIXED_HID = "FAMILIE01"; // <-- skift til dit ønskede HID, kun A-Z/0-9
+
+      // 1) Fjern gamle service workers (forebygger cache-støj)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+      }
+
+      // 2) Byg mål-URL og T V I N G ?hid=FIXED_HID
+      var target = new URL('./webkiosk_apple_crisp_with_settings_fab.html', location.href);
+
+      // Bevar evt. eksisterende query/hash, men overstyr hid
+      var params = new URLSearchParams(location.search);
+      params.set('hid', FIXED_HID); // <- altid dit faste HID
+      target.search = '?' + params.toString();
+      if (location.hash) target.hash = location.hash;
+
+      // 3) Redirect
+      location.replace(target.toString());
+    })();
+  </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0; url=./webkiosk_apple_crisp_with_settings_fab.html?hid=FAMILIE01">
+  </noscript>
+</head>
+<body>Åbner Webkiosk…</body>
+</html>
