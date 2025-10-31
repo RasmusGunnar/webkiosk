@@ -8,6 +8,8 @@
   <meta name="robots" content="noindex"/>
   <script>
     (function () {
+      // 0) VÆLG DIT FASTE HID HER
+      var FIXED_HID = "FAMILIE01"; // <-- skift til dit ønskede HID, kun A-Z/0-9
       // 0) VÆLG DIT FASTE ORGANISATIONS-ID HER
       var FIXED_ORG = "subra"; // <-- skift til dit ønskede ID, kun A-Z/0-9
 
@@ -17,10 +19,13 @@
       }
 
       // 2) Byg mål-URL og T V I N G ?hid=FIXED_HID
+      var target = new URL('./webkiosk_apple_crisp_with_settings_fab.html', location.href);
       var target = new URL('./subra_attendance.html', location.href);
 
+      // Bevar evt. eksisterende query/hash, men overstyr hid
       // Bevar evt. eksisterende query/hash, men overstyr org
       var params = new URLSearchParams(location.search);
+      params.set('hid', FIXED_HID); // <- altid dit faste HID
       params.set('org', FIXED_ORG); // <- altid dit faste ID
       target.search = '?' + params.toString();
       if (location.hash) target.hash = location.hash;
@@ -30,6 +35,7 @@
     })();
   </script>
   <noscript>
+    <meta http-equiv="refresh" content="0; url=./webkiosk_apple_crisp_with_settings_fab.html?hid=FAMILIE01">
     <meta http-equiv="refresh" content="0; url=./subra_attendance.html?org=subra">
   </noscript>
 </head>
