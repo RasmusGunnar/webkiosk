@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Familie-kalender</title>
+  <style>
+    :root { --bg:#0a0b0f; --fg:#e6edf3; --muted:#9aa4ad; --accent:#7dcfff; --card:#0f1218; --border:#1e222a; }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    header{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+    h1{font-size:20px;margin:0}
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:12px;border:1px solid var(--border);padding:4px 8px;border-radius:999px;color:var(--muted)}
+    .board{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:14px}
+    .day{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:10px;min-height:120px}
+    .day h3{margin:0 0 8px 0;font-size:14px;color:#cdd6e0}
+    .event{padding:8px;border:1px solid var(--border);border-radius:12px;margin:6px 0}
+    .when{font-size:12px;color:var(--muted)}
+    .title{font-weight:600}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{appearance:none;border:1px solid var(--border);background:#171a20;color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .hint{color:var(--muted);font-size:13px}
+    @media (max-width:900px){ .board{grid-template-columns:1fr 1fr} }
+    @media (max-width:560px){ .board{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Familie-kalender</h1>
+        <div class="hint" id="hint"></div>
+      </div>
+      <div class="badges">
+        <span class="badge" id="hidBadge">HID: —</span>
+        <span class="badge" id="modeBadge">Kilde: —</span>
+        <span class="badge" id="updBadge">Opdateret: —</span>
+      </div>
+    </header>
+
+    <div class="controls" style="margin-top:10px">
+      <button id="refresh">Opdatér nu</button>
+      <button id="copyLink">Kopiér delingslink</button>
+    </div>
+
+    <section class="board" id="board" aria-live="polite"></section>
+
+    <p class="hint" style="margin-top:12px">
+      Henter cirka hver 2. minut. Hvis din ICS-kilde ikke tillader CORS, brug et feed-endpoint (fx Google Apps Script) og giv det som <code>?import=</code>.
+    </p>
+  </div>
+
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const HID = qs.get("hid") || "FAMILIE01";
+    const ICS_URL = qs.get("ics");          // direkte ICS (kræver CORS)
+    const FEED_URL = qs.get("import");      // anbefalet: dit CORS-venlige JSON-feed
+    const DAYS = parseInt(qs.get("days") || "14", 10); // vis 14 dage frem som default
+    const POLL_MS = parseInt(qs.get("poll") || "120000", 10);
+
+    const $ = (s)=>document.querySelector(s);
+    $("#hidBadge").textContent = "HID: " + HID;
+    $("#modeBadge").textContent = FEED_URL ? "Kilde: feed" : (ICS_URL ? "Kilde: ics" : "Kilde: —");
+
+    $("#hint").textContent = FEED_URL
+      ? "Viser data fra feed-endpoint (import)."
+      : (ICS_URL ? "Viser data fra ICS-link." : "Angiv ?ics= eller ?import= i URL’en.");
+
+    async function fetchFeed(){
+      if (FEED_URL){
+        // Forventet return: { events: [ { start, end, title, location? } ] }
+        const res = await fetch(FEED_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("Feed HTTP " + res.status);
+        return (await res.json()).events || [];
+      } else if (ICS_URL){
+        const res = await fetch(ICS_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("ICS HTTP " + res.status);
+        const ics = await res.text();
+        return parseICS(ics);
+      } else {
+        return [];
+      }
+    }
+
+    // Minimal ICS-parser (VEVENT → {start,end,title,location})
+    function parseICS(text){
+      // unfold (linjer der fortsætter starter med mellemrum)
+      const raw = text.replace(/\r/g,"").split("\n");
+      const lines = [];
+      for (let i=0;i<raw.length;i++){
+        const line = raw[i];
+        if (i>0 && (line.startsWith(" ") || line.startsWith("\t"))){
+          lines[lines.length-1] += line.slice(1);
+        } else lines.push(line);
+      }
+      const events = [];
+      let cur = null;
+      for (const ln of lines){
+        if (ln.startsWith("BEGIN:VEVENT")) cur = {};
+        else if (ln.startsWith("END:VEVENT")) { if (cur) { finalize(cur); events.push(cur); } cur=null; }
+        else if (cur){
+          if (ln.startsWith("DTSTART")) cur.start = parseICSTime(ln);
+          else if (ln.startsWith("DTEND")) cur.end = parseICSTime(ln);
+          else if (ln.startsWith("SUMMARY")) cur.title = afterColon(ln);
+          else if (ln.startsWith("LOCATION")) cur.location = afterColon(ln);
+          else if (ln.startsWith("DESCRIPTION")) cur.description = afterColon(ln);
+        }
+      }
+      function finalize(e){
+        if (!e.end && e.start) e.end = new Date(e.start.getTime() + 60*60*1000); // default 1t
+      }
+      return events;
+    }
+
+    function afterColon(ln){
+      const i = ln.indexOf(":");
+      return i>=0 ? decodeText(ln.slice(i+1)) : "";
+    }
+
+    function parseICSTime(ln){
+      // Eksempler: "DTSTART:20251103T120000Z" eller "DTSTART;TZID=Europe/Copenhagen:20251103T130000"
+      const i = ln.indexOf(":");
+      const left = ln.slice(0,i);
+      const val = ln.slice(i+1).trim();
+      // Parse YYYYMMDD eller YYYYMMDDTHHmmssZ
+      const m = val.match(/^(\d{4})(\d{2})(\d{2})(T(\d{2})(\d{2})(\d{2})Z?)?$/);
+      if (!m) return new Date(val); // fallback
+      const [ , Y, Mo, D, T, h="00", mi="00", s="00" ] = m;
+      if (val.endsWith("Z")){
+        return new Date(Date.UTC(+Y, +Mo-1, +D, +h, +mi, +s));
+      } else {
+        // Hvis TZID specificeret → antag lokal tid i den TZ; vi gengiver som browserens lokale tid
+        return new Date(+Y, +Mo-1, +D, +h, +mi, +s);
+      }
+    }
+
+    function decodeText(t){
+      return t.replace(/\\n/g,"\n").replace(/\\,/g,",").replace(/\\\\/g,"\\");
+    }
+
+    function fmtDay(d){
+      return d.toLocaleDateString(undefined,{ weekday:"short", day:"2-digit", month:"short" });
+    }
+    function fmtTime(d){
+      return d.toLocaleTimeString(undefined,{ hour:"2-digit", minute:"2-digit" });
+    }
+    function stripTime(d){ const dt=new Date(d); dt.setHours(0,0,0,0); return dt.getTime(); }
+
+    function render(events){
+      // Filtrér til de næste N dage
+      const now = new Date();
+      const end = new Date(now.getTime() + DAYS*24*60*60*1000);
+      const inRange = events.filter(e => e.start && e.start >= startOfDay(now) && e.start <= end);
+      inRange.sort((a,b)=>a.start-b.start);
+
+      // Gruppér pr. dag
+      const byDay = new Map();
+      for (const e of inRange){
+        const k = stripTime(e.start);
+        if (!byDay.has(k)) byDay.set(k, []);
+        byDay.get(k).push(e);
+      }
+
+      const days = [];
+      for (let i=0;i<7;i++){
+        days.push(stripTime(new Date(now.getFullYear(), now.getMonth(), now.getDate()+i)));
+      }
+
+      // Hvis der ikke er events de første 7 dage, vis alligevel tomme kolonner for 7 dage
+      const keys = Array.from(new Set([...days, ...byDay.keys()])).sort((a,b)=>a-b);
+
+      const $board = $("#board");
+      $board.innerHTML = "";
+      for (const k of keys){
+        const box = document.createElement("div");
+        box.className = "day";
+        const dt = new Date(k);
+        const h3 = document.createElement("h3");
+        h3.textContent = fmtDay(dt);
+        box.appendChild(h3);
+
+        const arr = byDay.get(k) || [];
+        if (arr.length === 0){
+          const p = document.createElement("div");
+          p.className = "event";
+          p.innerHTML = `<div class="when">—</div><div class="title">Ingen begivenheder</div>`;
+          box.appendChild(p);
+        } else {
+          for (const e of arr){
+            const div = document.createElement("div");
+            div.className = "event";
+            const when = document.createElement("div");
+            when.className = "when";
+            when.textContent = (isAllDay(e) ? "Hele dagen" : `${fmtTime(e.start)}–${fmtTime(e.end)}`);
+            const title = document.createElement("div");
+            title.className = "title";
+            title.textContent = e.title || "(uden titel)";
+            const loc = document.createElement("div");
+            loc.className = "when";
+            if (e.location) loc.textContent = e.location;
+            div.appendChild(when); div.appendChild(title); if (e.location) div.appendChild(loc);
+            box.appendChild(div);
+          }
+        }
+
+        $board.appendChild(box);
+      }
+    }
+
+    function startOfDay(d){ const dt=new Date(d); dt.setHours(0,0,0,0); return dt; }
+    function isAllDay(e){
+      if (!e.start || !e.end) return false;
+      const dur = (e.end - e.start);
+      // heuristik: 23.5-24.5 timer → heldags
+      return dur >= 23.5*3600*1000 && dur <= 24.5*3600*1000 && e.start.getHours()===0 && e.start.getMinutes()===0;
+    }
+
+    async function refreshOnce(){
+      try{
+        const events = await fetchFeed();
+        // Normalisér til Date-objekter
+        for (const ev of events){
+          if (typeof ev.start === "string") ev.start = new Date(ev.start);
+          if (typeof ev.end === "string") ev.end = new Date(ev.end);
+        }
+        render(events);
+        $("#updBadge").textContent = "Opdateret: " + new Date().toLocaleTimeString();
+      }catch(err){
+        console.error(err);
+        $("#updBadge").textContent = "Opdateret: fejl";
+      }
+    }
+
+    $("#refresh").onclick = refreshOnce;
+    $("#copyLink").onclick = async () => {
+      await navigator.clipboard.writeText(location.href);
+      $("#updBadge").textContent = "Link kopieret";
+    };
+
+    // Første render + polling
+    refreshOnce();
+    setInterval(refreshOnce, POLL_MS);
+  </script>
+</body>
+</html>
