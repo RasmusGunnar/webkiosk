@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "webkiosk",
+    "slug": "webkiosk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    // Icons removed from repo to avoid binary assets in PR; Expo will fall back to default.
+    "icon": undefined,
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      // Adaptive icon image removed from repo; uses default if built without override.
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    // Favicon removed from repo to avoid binary assets in PR.
+    "web": {}
+  }
+}
