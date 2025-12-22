@@ -1,0 +1,591 @@
+import { StatusBar } from 'expo-status-bar';
+import React, { useMemo, useState } from 'react';
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+type TabKey = 'home' | 'communities' | 'factions' | 'matchday' | 'inbox' | 'profile';
+
+const accent = '#D50032'; // FCN-inspired red
+const muted = '#e8ecf0';
+const textPrimary = '#0c1a2b';
+const textSecondary = '#3d4a5c';
+
+const tabs: { key: TabKey; label: string }[] = [
+  { key: 'home', label: 'Hjem' },
+  { key: 'communities', label: 'Byfællesskaber' },
+  { key: 'factions', label: 'Fraktioner' },
+  { key: 'matchday', label: 'Kampdag' },
+  { key: 'inbox', label: 'Indbakke' },
+  { key: 'profile', label: 'Profil' },
+];
+
+const match = {
+  opponent: 'Brøndby IF',
+  datetime: 'Lør 2. nov · 16:00',
+  venue: 'Right to Dream Park',
+  focus: ['Superliga', 'Hjemmebane'],
+};
+
+const communities = [
+  {
+    name: 'Ganløse',
+    members: 128,
+    heading: '13 tager afsted til næste kamp',
+    highlights: ['Samling på torvet 13:30', '2 lift ledige'],
+  },
+  {
+    name: 'Farum',
+    members: 342,
+    heading: 'Fælles afgang fra stationen 14:45',
+    highlights: ['“Kom alene”-venligt', '3 events i dag'],
+  },
+  {
+    name: 'Hillerød',
+    members: 210,
+    heading: 'Udebanetur til Aarhus planlægges',
+    highlights: ['2 samkørsler åbne', 'Afstemning om fanmarch'],
+  },
+];
+
+const factions = [
+  {
+    name: 'Wild Tigers',
+    members: 512,
+    motto: 'Sektion C · Høj energi · Tifo & chants',
+    channels: ['#kampdag', '#sange', '#tifo'],
+    setlist: ['FCN – Vi er her igen', 'Nord som aldrig før', 'Alle mand på dæk'],
+  },
+  {
+    name: 'Mild Fathers',
+    members: 94,
+    motto: 'Familietribunen · Rolig stemning · Hyggelige ture',
+    channels: ['#kampdag', '#planlægning', '#familie'],
+    setlist: ['For Farum og for familien', 'Vi står sammen', 'Klapsang til pausen'],
+  },
+];
+
+const events = {
+  ganlose: [
+    {
+      title: 'Samling i Ganløse før kamp',
+      time: '13:30 · Ganløse Torv',
+      tags: ['Lokalt', 'Velkommen alene'],
+      attendees: 18,
+    },
+    {
+      title: 'Fælles afgang med bil',
+      time: '14:15 · 3 pladser',
+      tags: ['Samkørsel'],
+      attendees: 6,
+    },
+    {
+      title: 'Efterkamp på Farum Kro',
+      time: '18:30 · “Vi fejrer sejren”',
+      tags: ['Efterkamp'],
+      attendees: 12,
+    },
+  ],
+  matchday: [
+    {
+      title: 'Indgang 1 · Fanrute',
+      time: '15:20 · March fra stationen',
+      tags: ['Stadion', 'Offentlig'],
+      attendees: 44,
+    },
+    {
+      title: 'Wild Tigers · Tifo brief',
+      time: '14:45 · Sektion C indgang',
+      tags: ['Fraktion', 'Read-only info'],
+      attendees: 60,
+    },
+  ],
+};
+
+const inbox = [
+  { title: 'Ny fraktion opdatering', detail: 'Wild Tigers har pin’et setlisten for Brøndby-kampen.' },
+  { title: 'Lift tilbudt fra Ganløse', detail: 'Jacob: 2 pladser, afgang 14:10.' },
+  { title: 'Nyt event', detail: 'Efterkamp på Farum Kro er oprettet.' },
+  { title: 'Notifikationer', detail: 'Du har nye beskeder i #kampdag (Wild Tigers).' },
+];
+
+const songs = [
+  {
+    title: 'FCN – Vi er her igen',
+    tags: ['Tempo: høj', 'Sektion C'],
+    body: 'Vi er FC Nordsjælland, vi står sammen skulder ved skulder ...',
+  },
+  {
+    title: 'For Farum og for familien',
+    tags: ['Rolig', 'Familietribunen'],
+    body: 'For Farum, for fællesskabet, vi synger højt for vores hold ...',
+  },
+];
+
+const featureFlags = {
+  songbookEnabled: true,
+  factionsPublic: true,
+  readOnlyChannels: true,
+  remoteConfigDoc: 'config/app',
+};
+
+const Pill = ({ label }: { label: string }) => (
+  <View style={styles.pill}>
+    <Text style={styles.pillText}>{label}</Text>
+  </View>
+);
+
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.divider} />
+    </View>
+    {children}
+  </View>
+);
+
+const Card = ({
+  title,
+  subtitle,
+  meta,
+  children,
+  highlight,
+}: {
+  title: string;
+  subtitle?: string;
+  meta?: string;
+  highlight?: string;
+  children?: React.ReactNode;
+}) => (
+  <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.cardSubtitle}>{subtitle}</Text> : null}
+        {meta ? <Text style={styles.cardMeta}>{meta}</Text> : null}
+      </View>
+      {highlight ? <Text style={styles.cardBadge}>{highlight}</Text> : null}
+    </View>
+    {children}
+  </View>
+);
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<TabKey>('home');
+
+  const tabContent = useMemo(() => {
+    switch (activeTab) {
+      case 'home':
+        return (
+          <>
+            <Section title="Næste kamp">
+              <Card title={`FCN vs ${match.opponent}`} subtitle={match.datetime} meta={match.venue}>
+                <View style={styles.rowGap}>
+                  <View style={styles.pillRow}>
+                    {match.focus.map((item) => (
+                      <Pill key={item} label={item} />
+                    ))}
+                  </View>
+                  <Text style={styles.caption}>Tryk “Se kampdag” i appen for events og fanruter.</Text>
+                </View>
+              </Card>
+            </Section>
+            <Section title="Mit fællesskab">
+              <Card
+                title="Ganløse"
+                subtitle="Byfællesskab · Offentlig"
+                meta="13 tager afsted · 2 samkørsler"
+                highlight="Fokus"
+              >
+                <View style={styles.rowGap}>
+                  <View style={styles.pillRow}>
+                    <Pill label="“Kom alene”-venligt" />
+                    <Pill label="Events i dag: 3" />
+                  </View>
+                  <Text style={styles.caption}>
+                    Brug “Jeg tager afsted” for at tælle op og foreslå samkørsel.
+                  </Text>
+                </View>
+              </Card>
+            </Section>
+            <Section title="Mine aktive ting">
+              <View style={styles.stack}>
+                <Card title="Indgang 1 · Fanrute" subtitle="15:20 · March fra stationen" meta="44 kommer" />
+                <Card title="Efterkamp på Farum Kro" subtitle="18:30" meta="12 kommer" />
+                <Card title="Wild Tigers #kampdag" subtitle="Nye beskeder" meta="Setliste opdateret" />
+              </View>
+            </Section>
+          </>
+        );
+      case 'communities':
+        return (
+          <>
+            <Section title="Byfællesskaber (offentlige)">
+              {communities.map((community) => (
+                <Card
+                  key={community.name}
+                  title={community.name}
+                  subtitle={`${community.members} medlemmer`}
+                  meta={community.heading}
+                  highlight="Åbent"
+                >
+                  <View style={styles.pillRow}>
+                    {community.highlights.map((item) => (
+                      <Pill key={item} label={item} />
+                    ))}
+                  </View>
+                </Card>
+              ))}
+            </Section>
+            <Section title="Opret nyt fællesskab">
+              <Card
+                title="By / Område"
+                subtitle="Undgå dubletter · fx “Ganløse (Egedal)”"
+                meta="Offentlig visning · login kræves for at skrive"
+              >
+                <View style={styles.pillRow}>
+                  <Pill label="Captain + co-captain" />
+                  <Pill label="Rapportér/Skjul" />
+                  <Pill label="Pinned regler" />
+                </View>
+              </Card>
+            </Section>
+          </>
+        );
+      case 'factions':
+        return (
+          <>
+            <Section title="Fanfraktioner (offentlige)">
+              {factions.map((faction) => (
+                <Card
+                  key={faction.name}
+                  title={faction.name}
+                  subtitle={`${faction.members} medlemmer`}
+                  meta={faction.motto}
+                  highlight="Alle kan se"
+                >
+                  <View style={styles.rowGap}>
+                    <View style={styles.pillRow}>
+                      {faction.channels.map((channel) => (
+                        <Pill key={channel} label={channel} />
+                      ))}
+                    </View>
+                    <Text style={styles.caption}>Sangbog & setlist til kampdag:</Text>
+                    <View style={styles.pillRow}>
+                      {faction.setlist.map((song) => (
+                        <Pill key={song} label={song} />
+                      ))}
+                    </View>
+                  </View>
+                </Card>
+              ))}
+            </Section>
+            <Section title="Sangbog (offentlig visning)">
+              {songs.map((song) => (
+                <Card key={song.title} title={song.title} subtitle={song.tags.join(' · ')}>
+                  <Text style={styles.caption}>{song.body}</Text>
+                </Card>
+              ))}
+            </Section>
+          </>
+        );
+      case 'matchday':
+        return (
+          <>
+            <Section title="Filter: Mit fællesskab (Ganløse)">
+              <View style={styles.pillRow}>
+                <Pill label="Før kamp" />
+                <Pill label="Ved stadion" />
+                <Pill label="Efterkamp" />
+                <Pill label="Kun med “Kom alene”" />
+              </View>
+            </Section>
+            <Section title="Events · Ganløse + Offentligt">
+              <FlatList
+                data={events.ganlose}
+                keyExtractor={(item) => item.title}
+                renderItem={({ item }) => (
+                  <Card title={item.title} subtitle={item.time} meta={`${item.attendees} kommer`}>
+                    <View style={styles.pillRow}>
+                      {item.tags.map((tag) => (
+                        <Pill key={tag} label={tag} />
+                      ))}
+                    </View>
+                  </Card>
+                )}
+                scrollEnabled={false}
+              />
+            </Section>
+            <Section title="Events · Stadion/Fraktion">
+              <FlatList
+                data={events.matchday}
+                keyExtractor={(item) => item.title}
+                renderItem={({ item }) => (
+                  <Card title={item.title} subtitle={item.time} meta={`${item.attendees} kommer`}>
+                    <View style={styles.pillRow}>
+                      {item.tags.map((tag) => (
+                        <Pill key={tag} label={tag} />
+                      ))}
+                    </View>
+                  </Card>
+                )}
+                scrollEnabled={false}
+              />
+            </Section>
+          </>
+        );
+      case 'inbox':
+        return (
+          <>
+            <Section title="Indbakke">
+              {inbox.map((item) => (
+                <Card key={item.title} title={item.title} subtitle={item.detail} />
+              ))}
+            </Section>
+            <Section title="Moderator tools">
+              <Card title="Read-only kanaler" subtitle="fx #info-fra-capo" meta="Slå til på fraktioner">
+                <View style={styles.pillRow}>
+                  <Pill label="Skjul indhold hurtigt" />
+                  <Pill label="Rapportér beskeder" />
+                  <Pill label="Rate limit (MVP senere)" />
+                </View>
+              </Card>
+            </Section>
+          </>
+        );
+      case 'profile':
+        return (
+          <>
+            <Section title="Profil">
+              <Card title="Bruger" subtitle="Alex, Ganløse · “Kommer ofte alene”" meta="Captain i Ganløse">
+                <View style={styles.pillRow}>
+                  <Pill label="Mine fællesskaber: 2" />
+                  <Pill label="Mine fraktioner: 1" />
+                  <Pill label="Badges: Stemningsskaber" />
+                </View>
+              </Card>
+            </Section>
+            <Section title="Feature flags / konfiguration">
+              <Card
+                title="Tænd/sluk uden app update"
+                subtitle="Gemmes i Firestore: config/app"
+                meta="Bruges til rollout & kill switch"
+              >
+                <View style={styles.pillRow}>
+                  <Pill label={`songbookEnabled: ${featureFlags.songbookEnabled}`} />
+                  <Pill label={`factionsPublic: ${featureFlags.factionsPublic}`} />
+                  <Pill label={`readOnlyChannels: ${featureFlags.readOnlyChannels}`} />
+                </View>
+                <Text style={styles.caption}>
+                  Bruges sammen med EAS Update til små UI-ændringer. Større ting → ny App Store build.
+                </Text>
+              </Card>
+            </Section>
+            <Section title="Udgivelsesflow">
+              <Card title="Hurtige rettelser" subtitle="EAS Update" meta="staging → production">
+                <View style={styles.pillRow}>
+                  <Pill label="Bugfix uden App Store" />
+                  <Pill label="Tekst/UI-justering" />
+                </View>
+              </Card>
+              <Card title="Store ændringer" subtitle="Ny version til App Store" meta="Byg med EAS Build">
+                <View style={styles.pillRow}>
+                  <Pill label="Nye permissions" />
+                  <Pill label="Store features" />
+                  <Pill label="Native SDK" />
+                </View>
+              </Card>
+            </Section>
+          </>
+        );
+      default:
+        return null;
+    }
+  }, [activeTab]);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <View style={styles.hero}>
+        <Text style={styles.appName}>FC Nordsjælland Fan Hub</Text>
+        <Text style={styles.appTagline}>Byfællesskaber · Fraktioner · Kampdag</Text>
+      </View>
+      <View style={styles.tabBar}>
+        {tabs.map((tab) => {
+          const isActive = tab.key === activeTab;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+            >
+              <Text style={[styles.tabButtonLabel, isActive && styles.tabButtonLabelActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {tabContent}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f6f7fb',
+  },
+  hero: {
+    backgroundColor: accent,
+    paddingTop: 56,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+  },
+  appName: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  appTagline: {
+    color: '#ffe8ef',
+    marginTop: 4,
+    fontSize: 14,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: muted,
+  },
+  tabButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: muted,
+  },
+  tabButtonActive: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: accent,
+  },
+  tabButtonLabel: {
+    color: textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  tabButtonLabelActive: {
+    color: accent,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+    gap: 12,
+    paddingBottom: 40,
+  },
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#0c1a2b',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    gap: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: textPrimary,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: muted,
+  },
+  card: {
+    backgroundColor: '#fdfdfd',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: muted,
+    gap: 8,
+    marginTop: 6,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: textPrimary,
+  },
+  cardSubtitle: {
+    color: textSecondary,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  cardMeta: {
+    color: '#5b6a7e',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  cardBadge: {
+    color: '#fff',
+    backgroundColor: accent,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pill: {
+    backgroundColor: '#f3f5f9',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: muted,
+  },
+  pillText: {
+    color: textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  caption: {
+    color: textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rowGap: {
+    gap: 8,
+  },
+  stack: {
+    gap: 8,
+  },
+});
