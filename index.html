@@ -11,6 +11,7 @@
         --text-primary: #0c1a2b;
         --text-secondary: #3d4a5c;
         --bg: #f6f7fb;
+        --overlay: rgba(6, 9, 18, 0.45);
       }
 
       * {
@@ -31,48 +32,119 @@
       }
 
       .hero {
-        background: var(--accent);
-        padding: 56px 20px 16px;
+        position: relative;
+        min-height: 260px;
         color: #fff;
+        display: grid;
+        place-items: end start;
+        overflow: hidden;
+        border-bottom-left-radius: 24px;
+        border-bottom-right-radius: 24px;
+        box-shadow: 0 20px 50px rgba(12, 26, 43, 0.15);
+        isolation: isolate;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(12, 26, 43, 0.2) 0%, rgba(12, 26, 43, 0.85) 90%),
+          url("https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1400&q=80&sat=-20&blend=111827&sat=-25")
+            center/cover no-repeat;
+        z-index: -2;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(213, 0, 50, 0.2), transparent 35%);
+        z-index: -1;
+      }
+
+      .hero-content {
+        padding: 28px 20px 18px;
+        display: grid;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .hero-logos {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        backdrop-filter: blur(6px);
+      }
+
+      .hero-logo {
+        height: 44px;
+        width: 44px;
+        object-fit: contain;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 6px;
+      }
+
+      .hero-logo-divider {
+        width: 1px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.25);
       }
 
       .app-name {
         font-weight: 800;
-        font-size: 24px;
+        font-size: 26px;
         margin: 0;
+        text-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
       }
 
       .app-tagline {
-        margin: 4px 0 0;
-        color: #ffe8ef;
-        font-size: 14px;
+        margin: 0;
+        color: #fbe0e6;
+        font-size: 15px;
+      }
+
+      .hero-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
       }
 
       .tab-bar {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        padding: 10px 12px;
-        background: #fff;
+        padding: 12px 12px 6px;
+        background: linear-gradient(180deg, #fefefe, #f6f7fb);
         border-bottom: 1px solid var(--muted);
+        box-shadow: 0 6px 16px rgba(12, 26, 43, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        backdrop-filter: blur(8px);
       }
 
       .tab-button {
         border: 1px solid transparent;
         background: var(--muted);
         color: var(--text-secondary);
-        padding: 8px 12px;
-        border-radius: 12px;
-        font-weight: 600;
+        padding: 9px 14px;
+        border-radius: 14px;
+        font-weight: 700;
         font-size: 13px;
         cursor: pointer;
         transition: all 0.12s ease;
+        box-shadow: inset 0 1px 0 #fff;
       }
 
       .tab-button.active {
         border-color: var(--accent);
         background: #fff;
         color: var(--accent);
+        box-shadow: 0 8px 18px rgba(213, 0, 50, 0.15);
       }
 
       .content {
@@ -84,12 +156,12 @@
 
       .section {
         background: #fff;
-        border-radius: 16px;
-        padding: 12px;
-        box-shadow: 0 2px 6px rgba(12, 26, 43, 0.05);
-        border: 1px solid var(--muted);
+        border-radius: 18px;
+        padding: 14px 14px 12px;
+        box-shadow: 0 12px 40px rgba(12, 26, 43, 0.06);
+        border: 1px solid #e3e7ee;
         display: grid;
-        gap: 8px;
+        gap: 10px;
       }
 
       .section-header {
@@ -112,12 +184,13 @@
 
       .card {
         border: 1px solid var(--muted);
-        background: #fdfdfd;
-        border-radius: 12px;
+        background: linear-gradient(180deg, #fff, #f9fbff);
+        border-radius: 14px;
         padding: 12px;
         display: grid;
-        gap: 8px;
+        gap: 10px;
         margin-top: 6px;
+        box-shadow: 0 8px 24px rgba(12, 26, 43, 0.05);
       }
 
       .card-header {
@@ -136,12 +209,14 @@
         margin: 2px 0 0;
         font-size: 13px;
         color: var(--text-secondary);
+        font-weight: 600;
       }
 
       .card-meta {
         margin: 2px 0 0;
         font-size: 12px;
         color: #5b6a7e;
+        font-weight: 600;
       }
 
       .card-badge {
@@ -151,6 +226,7 @@
         border-radius: 10px;
         font-size: 12px;
         font-weight: 700;
+        box-shadow: 0 6px 18px rgba(213, 0, 50, 0.3);
       }
 
       .pill-row {
@@ -166,7 +242,8 @@
         padding: 6px 10px;
         font-size: 12px;
         color: var(--text-secondary);
-        font-weight: 600;
+        font-weight: 700;
+        box-shadow: inset 0 1px 0 #fff;
       }
 
       .caption {
@@ -174,11 +251,104 @@
         font-size: 13px;
         line-height: 18px;
         margin: 0;
+        font-weight: 600;
       }
 
       .stack {
         display: grid;
         gap: 8px;
+      }
+
+      .media-card {
+        overflow: hidden;
+        padding: 0;
+      }
+
+      .media { position: relative; overflow: hidden; border-radius: 12px; }
+
+      .media img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .media::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(12, 26, 43, 0) 0%, rgba(12, 26, 43, 0.4) 100%);
+      }
+
+      .media-content {
+        position: absolute;
+        bottom: 10px;
+        left: 12px;
+        right: 12px;
+        color: #fff;
+        display: grid;
+        gap: 4px;
+        text-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      }
+
+      .media-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .media-subtitle {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #e9edf3;
+      }
+
+      .gallery {
+        display: grid;
+        gap: 10px;
+        overflow-x: auto;
+        grid-auto-flow: column;
+        grid-auto-columns: 240px;
+        padding-bottom: 6px;
+      }
+
+      .gallery-card {
+        position: relative;
+        height: 180px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 28px rgba(12, 26, 43, 0.15);
+      }
+
+      .gallery-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .gallery-overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        align-content: flex-end;
+        padding: 12px;
+        background: linear-gradient(180deg, rgba(12, 26, 43, 0.05), rgba(12, 26, 43, 0.7));
+        color: #fff;
+        gap: 4px;
+      }
+
+      .gallery-title {
+        margin: 0;
+        font-weight: 800;
+        font-size: 15px;
+      }
+
+      .gallery-caption {
+        margin: 0;
+        font-weight: 600;
+        font-size: 13px;
+        color: #f1f4f9;
       }
 
       @media (min-width: 960px) {
@@ -192,8 +362,26 @@
   <body>
     <div class="app">
       <header class="hero">
-        <h1 class="app-name">FC Nordsjælland Fan Hub</h1>
-        <p class="app-tagline">Byfællesskaber · Fraktioner · Kampdag</p>
+        <div class="hero-content">
+          <div class="hero-logos" aria-label="Næste kamp logoer">
+            <img
+              class="hero-logo"
+              src="https://upload.wikimedia.org/wikipedia/en/thumb/e/e8/FC_Nordsj%C3%A6lland_logo.svg/1200px-FC_Nordsj%C3%A6lland_logo.svg.png"
+              alt="FCN logo"
+              loading="lazy"
+            />
+            <div class="hero-logo-divider" aria-hidden="true"></div>
+            <img
+              class="hero-logo"
+              src="https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Br%C3%B8ndby_IF_logo.svg/1200px-Br%C3%B8ndby_IF_logo.svg.png"
+              alt="Brøndby IF logo"
+              loading="lazy"
+            />
+          </div>
+          <h1 class="app-name">FC Nordsjælland Fan Hub</h1>
+          <p class="app-tagline">Byfællesskaber · Fraktioner · Kampdag</p>
+          <div class="hero-badges" id="heroBadges"></div>
+        </div>
       </header>
       <nav class="tab-bar" id="tabBar"></nav>
       <main class="content" id="content" aria-live="polite"></main>
@@ -209,6 +397,8 @@
         { key: "profile", label: "Profil" },
       ];
 
+      const heroHighlights = ["Næste kamp · 2. nov", "90+ billeder fra tribunen", "Fællesture · Tifo · Samkørsel"];
+
       const match = {
         opponent: "Brøndby IF",
         datetime: "Lør 2. nov · 16:00",
@@ -222,18 +412,21 @@
           members: 128,
           heading: "13 tager afsted til næste kamp",
           highlights: ["Samling på torvet 13:30", "2 lift ledige"],
+          image: "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?auto=format&fit=crop&w=800&q=80",
         },
         {
           name: "Farum",
           members: 342,
           heading: "Fælles afgang fra stationen 14:45",
           highlights: ["“Kom alene”-venligt", "3 events i dag"],
+          image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80",
         },
         {
           name: "Hillerød",
           members: 210,
           heading: "Udebanetur til Aarhus planlægges",
           highlights: ["2 samkørsler åbne", "Afstemning om fanmarch"],
+          image: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=800&q=80",
         },
       ];
 
@@ -244,6 +437,7 @@
           motto: "Sektion C · Høj energi · Tifo & chants",
           channels: ["#kampdag", "#sange", "#tifo"],
           setlist: ["FCN – Vi er her igen", "Nord som aldrig før", "Alle mand på dæk"],
+          image: "https://images.unsplash.com/photo-1522778119026-939cd0d94eab?auto=format&fit=crop&w=900&q=80",
         },
         {
           name: "Mild Fathers",
@@ -251,6 +445,7 @@
           motto: "Familietribunen · Rolig stemning · Hyggelige ture",
           channels: ["#kampdag", "#planlægning", "#familie"],
           setlist: ["For Farum og for familien", "Vi står sammen", "Klapsang til pausen"],
+          image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80",
         },
       ];
 
@@ -298,6 +493,25 @@
         { title: "Notifikationer", detail: "Du har nye beskeder i #kampdag (Wild Tigers)." },
       ];
 
+      const gallery = [
+        {
+          title: "Sektion C i rødt",
+          caption: "Tifo klar – flag og røg til opvarmningen",
+          image:
+            "https://images.unsplash.com/photo-1478146896981-b80fe463b330?auto=format&fit=crop&w=1200&q=80&sat=-15",
+        },
+        {
+          title: "Familietribunen hygger",
+          caption: "Kakao, ansigtsmaling og autografer til de yngste",
+          image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=1200&q=80",
+        },
+        {
+          title: "Fanrute fra stationen",
+          caption: "Røde halstørklæder hele vejen til Right to Dream",
+          image: "https://images.unsplash.com/photo-1434648957308-5e6a859697e8?auto=format&fit=crop&w=1200&q=80",
+        },
+      ];
+
       const songs = [
         {
           title: "FCN – Vi er her igen",
@@ -320,24 +534,44 @@
 
       const contentEl = document.getElementById("content");
       const tabBarEl = document.getElementById("tabBar");
+      const heroBadgesEl = document.getElementById("heroBadges");
 
       const pill = (label) => `<span class="pill">${label}</span>`;
 
       const pillRow = (items) => `<div class="pill-row">${items.map(pill).join("")}</div>`;
 
-      const card = ({ title, subtitle, meta, highlight, body }) => `
-        <article class="card">
-          <div class="card-header">
-            <div style="flex:1">
-              <h3 class="card-title">${title}</h3>
-              ${subtitle ? `<p class="card-subtitle">${subtitle}</p>` : ""}
-              ${meta ? `<p class="card-meta">${meta}</p>` : ""}
+      const card = ({ title, subtitle, meta, highlight, body, image }) => {
+        if (image) {
+          return `
+            <article class="card media-card">
+              <div class="media">
+                <img src="${image}" alt="${title}" loading="lazy" />
+                <div class="media-content">
+                  ${highlight ? `<span class="card-badge">${highlight}</span>` : ""}
+                  <h3 class="media-title">${title}</h3>
+                  ${subtitle ? `<p class="media-subtitle">${subtitle}</p>` : ""}
+                  ${meta ? `<p class="card-meta" style="color:#e9edf3">${meta}</p>` : ""}
+                </div>
+              </div>
+              ${body ?? ""}
+            </article>
+          `;
+        }
+
+        return `
+          <article class="card">
+            <div class="card-header">
+              <div style="flex:1">
+                <h3 class="card-title">${title}</h3>
+                ${subtitle ? `<p class="card-subtitle">${subtitle}</p>` : ""}
+                ${meta ? `<p class="card-meta">${meta}</p>` : ""}
+              </div>
+              ${highlight ? `<span class="card-badge">${highlight}</span>` : ""}
             </div>
-            ${highlight ? `<span class="card-badge">${highlight}</span>` : ""}
-          </div>
-          ${body ?? ""}
-        </article>
-      `;
+            ${body ?? ""}
+          </article>
+        `;
+      };
 
       const section = (title, body) => `
         <section class="section">
@@ -367,6 +601,7 @@
           subtitle: "Byfællesskab · Offentlig",
           meta: "13 tager afsted · 2 samkørsler",
           highlight: "Fokus",
+          image: communities[0].image,
           body: `
             <div style="display:grid; gap:8px">
               ${pillRow(["“Kom alene”-venligt", "Events i dag: 3"])}
@@ -398,6 +633,7 @@
               subtitle: `${community.members} medlemmer`,
               meta: community.heading,
               highlight: "Åbent",
+              image: community.image,
               body: pillRow(community.highlights),
             }),
           )
@@ -421,6 +657,7 @@
               subtitle: `${faction.members} medlemmer`,
               meta: faction.motto,
               highlight: "Alle kan se",
+              image: faction.image,
               body: `
                 <div style="display:grid; gap:8px">
                   ${pillRow(faction.channels)}
@@ -437,7 +674,7 @@
             card({
               title: song.title,
               subtitle: song.tags.join(" · "),
-              body: `<p class="caption">${song.body}</p>`
+              body: `<p class="caption">${song.body}</p>`,
             }),
           )
           .join("");
@@ -527,11 +764,35 @@
             title: "Store ændringer",
             subtitle: "Ny version til App Store",
             meta: "Byg med EAS Build",
-            body: pillRow(["Store features", "Native SDK"]),
+            body: pillRow(["Nye permissions", "Store features", "Native SDK"]),
           })}
         `;
 
-        return [section("Profil", profileCard), section("Feature flags / konfiguration", flags), section("Udgivelsesflow", release)].join("");
+        const galleryCards = gallery
+          .map(
+            (item) => `
+              <article class="gallery-card">
+                <img src="${item.image}" alt="${item.title}" loading="lazy" />
+                <div class="gallery-overlay">
+                  <h3 class="gallery-title">${item.title}</h3>
+                  <p class="gallery-caption">${item.caption}</p>
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+
+        const fanMoments = section(
+          "Fan moments",
+          `<div class="gallery" role="list">${galleryCards}</div>`,
+        );
+
+        return [
+          section("Profil", profileCard),
+          section("Feature flags / konfiguration", flags),
+          section("Udgivelsesflow", release),
+          fanMoments,
+        ].join("");
       };
 
       const renderers = {
@@ -571,6 +832,7 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
 
+      heroBadgesEl.innerHTML = heroHighlights.map(pill).join("");
       renderTabs();
       renderContent();
     </script>
