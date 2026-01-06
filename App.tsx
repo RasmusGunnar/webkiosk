@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import {
   FlatList,
@@ -13,11 +14,13 @@ import {
 
 type TabKey = 'home' | 'communities' | 'factions' | 'matchday' | 'inbox' | 'profile';
 
-const accent = '#D50032'; // FCN-inspired red
+const accent = '#c8102e'; // FCN-inspired red
+const accentDark = '#7c0f26';
+const amber = '#f2c94c';
 const muted = '#e8ecf0';
+const soft = '#f7f2ef';
 const textPrimary = '#0c1a2b';
 const textSecondary = '#3d4a5c';
-const darkOverlay = 'rgba(6, 9, 18, 0.45)';
 
 const heroArt =
   'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1400&q=80&sat=-20&blend=111827&sat=-25';
@@ -492,20 +495,42 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <ImageBackground source={{ uri: heroArt }} style={styles.hero} resizeMode="cover">
-        <View style={styles.heroOverlay} />
+      <ImageBackground source={{ uri: heroArt }} style={styles.heroShell} resizeMode="cover">
+        <LinearGradient
+          colors={[accent, accentDark]}
+          start={{ x: 0.1, y: 0.1 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroOverlay}
+        />
         <View style={styles.heroContent}>
-          <View style={styles.logoRow}>
-            <Image source={{ uri: clubLogo }} style={styles.heroLogo} />
-            <View style={styles.logoDivider} />
-            <Image source={{ uri: awayLogo }} style={styles.heroLogo} />
+          <View style={styles.heroTopRow}>
+            <View style={styles.logoBadge}>
+              <Image source={{ uri: clubLogo }} style={styles.heroLogo} />
+            </View>
+            <View style={styles.heroMatchup}>
+              <Text style={styles.heroLabel}>Næste kamp</Text>
+              <Text style={styles.heroMatchTeams}>FCN vs {match.opponent}</Text>
+              <Text style={styles.heroMeta}>{match.datetime} · {match.venue}</Text>
+            </View>
+            <View style={styles.heroOpponentBadge}>
+              <Image source={{ uri: awayLogo }} style={styles.heroLogoSmall} />
+              <Text style={styles.heroOpponentText}>{match.opponent}</Text>
+            </View>
           </View>
-          <Text style={styles.appName}>FC Nordsjælland Fan Hub</Text>
+          <Text style={styles.appName}>Velkommen FCN fans</Text>
           <Text style={styles.appTagline}>Byfællesskaber · Fraktioner · Kampdag</Text>
+          <View style={styles.heroActions}>
+            <TouchableOpacity style={styles.ctaPrimary}>
+              <Text style={styles.ctaPrimaryLabel}>Kom i gang</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.ctaGhost}>
+              <Text style={styles.ctaGhostLabel}>Se demo</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.heroBadges}>
-            <Pill label="Næste kamp · 2. nov" />
-            <Pill label="90+ billeder fra tribunen" />
-            <Pill label="Fællesture · Tifo · Samkørsel" />
+            <Pill label="Byfællesskab: Ganløse" />
+            <Pill label="Fraktion: Wild Tigers" />
+            <Pill label="3 events i dag" />
           </View>
         </View>
       </ImageBackground>
@@ -533,47 +558,138 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#eef1f7',
+    backgroundColor: soft,
   },
-  hero: {
-    paddingTop: 64,
-    paddingBottom: 22,
+  heroShell: {
+    paddingTop: 60,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     position: 'relative',
+    overflow: 'hidden',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    backgroundColor: accent,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: darkOverlay,
+    opacity: 0.92,
   },
   heroContent: {
     position: 'relative',
-    gap: 10,
-  },
-  appName: {
-    color: '#fff',
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  appTagline: {
-    color: '#f6d5df',
-    marginTop: 2,
-    fontSize: 15,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
-  logoDivider: {
-    height: 32,
-    width: 1,
-    backgroundColor: '#ffffff80',
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  logoBadge: {
+    height: 64,
+    width: 64,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  heroMatchup: {
+    flex: 1,
+    marginHorizontal: 12,
+    gap: 4,
+  },
+  heroLabel: {
+    color: '#ffe6ed',
+    fontSize: 13,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    fontWeight: '700',
+  },
+  heroMatchTeams: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  heroMeta: {
+    color: '#ffe6ed',
+    fontSize: 13,
+  },
+  heroOpponentBadge: {
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  heroOpponentText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   heroLogo: {
     height: 48,
     width: 48,
     borderRadius: 12,
     backgroundColor: '#fff',
+  },
+  heroLogoSmall: {
+    height: 40,
+    width: 40,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+  },
+  appName: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  appTagline: {
+    color: '#ffe6ed',
+    marginTop: 2,
+    fontSize: 15,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  ctaPrimary: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  ctaPrimaryLabel: {
+    color: accent,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  ctaGhost: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#ffffff75',
+  },
+  ctaGhostLabel: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
   heroBadges: {
     flexDirection: 'row',
@@ -584,30 +700,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 8,
     backgroundColor: '#fff',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: muted,
+    borderColor: '#d7dce5',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -10,
+    shadowColor: '#0c1a2b',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 3,
   },
   tabButton: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: muted,
+    backgroundColor: '#f6f7fb',
   },
   tabButtonActive: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: accent,
+    backgroundColor: accent,
+    borderWidth: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   tabButtonLabel: {
     color: textSecondary,
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 13,
   },
   tabButtonLabelActive: {
-    color: accent,
+    color: '#fff',
   },
   content: {
     flex: 1,
@@ -619,14 +747,16 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 18,
+    padding: 14,
     shadowColor: '#0c1a2b',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#e7e3df',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -641,16 +771,21 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: muted,
+    backgroundColor: '#f1d6db',
   },
   card: {
-    backgroundColor: '#fdfdfd',
-    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: muted,
+    borderColor: '#f1d6db',
     gap: 8,
     marginTop: 6,
+    shadowColor: '#c8142f',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   cardImage: {
     height: 140,
@@ -709,17 +844,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pill: {
-    backgroundColor: '#f3f5f9',
+    backgroundColor: '#fff6f8',
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: muted,
+    borderColor: '#f1d6db',
   },
   pillText: {
-    color: textSecondary,
+    color: accent,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   caption: {
     color: textSecondary,
