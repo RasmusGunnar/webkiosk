@@ -2,6 +2,8 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
 import {
   FlatList,
+  Image,
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +17,14 @@ const accent = '#D50032'; // FCN-inspired red
 const muted = '#e8ecf0';
 const textPrimary = '#0c1a2b';
 const textSecondary = '#3d4a5c';
+const darkOverlay = 'rgba(6, 9, 18, 0.45)';
+
+const heroArt =
+  'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1400&q=80&sat=-20&blend=111827&sat=-25';
+const clubLogo =
+  'https://upload.wikimedia.org/wikipedia/en/thumb/e/e8/FC_Nordsj%C3%A6lland_logo.svg/1200px-FC_Nordsj%C3%A6lland_logo.svg.png';
+const awayLogo =
+  'https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Br%C3%B8ndby_IF_logo.svg/1200px-Br%C3%B8ndby_IF_logo.svg.png';
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'home', label: 'Hjem' },
@@ -38,18 +48,24 @@ const communities = [
     members: 128,
     heading: '13 tager afsted til næste kamp',
     highlights: ['Samling på torvet 13:30', '2 lift ledige'],
+    image:
+      'https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?auto=format&fit=crop&w=800&q=80',
   },
   {
     name: 'Farum',
     members: 342,
     heading: 'Fælles afgang fra stationen 14:45',
     highlights: ['“Kom alene”-venligt', '3 events i dag'],
+    image:
+      'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80',
   },
   {
     name: 'Hillerød',
     members: 210,
     heading: 'Udebanetur til Aarhus planlægges',
     highlights: ['2 samkørsler åbne', 'Afstemning om fanmarch'],
+    image:
+      'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=800&q=80',
   },
 ];
 
@@ -60,6 +76,8 @@ const factions = [
     motto: 'Sektion C · Høj energi · Tifo & chants',
     channels: ['#kampdag', '#sange', '#tifo'],
     setlist: ['FCN – Vi er her igen', 'Nord som aldrig før', 'Alle mand på dæk'],
+    image:
+      'https://images.unsplash.com/photo-1522778119026-939cd0d94eab?auto=format&fit=crop&w=900&q=80',
   },
   {
     name: 'Mild Fathers',
@@ -67,6 +85,8 @@ const factions = [
     motto: 'Familietribunen · Rolig stemning · Hyggelige ture',
     channels: ['#kampdag', '#planlægning', '#familie'],
     setlist: ['For Farum og for familien', 'Vi står sammen', 'Klapsang til pausen'],
+    image:
+      'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80',
   },
 ];
 
@@ -114,6 +134,27 @@ const inbox = [
   { title: 'Notifikationer', detail: 'Du har nye beskeder i #kampdag (Wild Tigers).' },
 ];
 
+const gallery = [
+  {
+    title: 'Sektion C i rødt',
+    caption: 'Tifo klar – flag og røg til opvarmningen',
+    image:
+      'https://images.unsplash.com/photo-1478146896981-b80fe463b330?auto=format&fit=crop&w=1200&q=80&sat=-15',
+  },
+  {
+    title: 'Familietribunen hygger',
+    caption: 'Kakao, ansigtsmaling og autografer til de yngste',
+    image:
+      'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    title: 'Fanrute fra stationen',
+    caption: 'Røde halstørklæder hele vejen til Right to Dream',
+    image:
+      'https://images.unsplash.com/photo-1434648957308-5e6a859697e8?auto=format&fit=crop&w=1200&q=80',
+  },
+];
+
 const songs = [
   {
     title: 'FCN – Vi er her igen',
@@ -156,14 +197,23 @@ const Card = ({
   meta,
   children,
   highlight,
+  image,
 }: {
   title: string;
   subtitle?: string;
   meta?: string;
   highlight?: string;
+  image?: string;
   children?: React.ReactNode;
 }) => (
   <View style={styles.card}>
+    {image ? (
+      <ImageBackground source={{ uri: image }} style={styles.cardImage} imageStyle={styles.cardImageRadius}>
+        <View style={styles.cardImageOverlay}>
+          <Text style={styles.cardImageLabel}>Stemningsbillede</Text>
+        </View>
+      </ImageBackground>
+    ) : null}
     <View style={styles.cardHeader}>
       <View style={{ flex: 1 }}>
         <Text style={styles.cardTitle}>{title}</Text>
@@ -187,6 +237,17 @@ export default function App() {
             <Section title="Næste kamp">
               <Card title={`FCN vs ${match.opponent}`} subtitle={match.datetime} meta={match.venue}>
                 <View style={styles.rowGap}>
+                  <View style={styles.crestRow}>
+                    <View style={styles.crestBox}>
+                      <Image source={{ uri: clubLogo }} style={styles.crest} resizeMode="contain" />
+                      <Text style={styles.cardSubtitle}>FC Nordsjælland</Text>
+                    </View>
+                    <Text style={styles.vs}>vs</Text>
+                    <View style={styles.crestBox}>
+                      <Image source={{ uri: awayLogo }} style={styles.crest} resizeMode="contain" />
+                      <Text style={styles.cardSubtitle}>{match.opponent}</Text>
+                    </View>
+                  </View>
                   <View style={styles.pillRow}>
                     {match.focus.map((item) => (
                       <Pill key={item} label={item} />
@@ -234,6 +295,7 @@ export default function App() {
                   subtitle={`${community.members} medlemmer`}
                   meta={community.heading}
                   highlight="Åbent"
+                  image={community.image}
                 >
                   <View style={styles.pillRow}>
                     {community.highlights.map((item) => (
@@ -269,6 +331,7 @@ export default function App() {
                   subtitle={`${faction.members} medlemmer`}
                   meta={faction.motto}
                   highlight="Alle kan se"
+                  image={faction.image}
                 >
                   <View style={styles.rowGap}>
                     <View style={styles.pillRow}>
@@ -402,6 +465,23 @@ export default function App() {
                 </View>
               </Card>
             </Section>
+            <Section title="Fan moments">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryRow}>
+                {gallery.map((item) => (
+                  <ImageBackground
+                    key={item.title}
+                    source={{ uri: item.image }}
+                    style={styles.galleryCard}
+                    imageStyle={styles.galleryImage}
+                  >
+                    <View style={styles.galleryOverlay}>
+                      <Text style={styles.galleryTitle}>{item.title}</Text>
+                      <Text style={styles.galleryCaption}>{item.caption}</Text>
+                    </View>
+                  </ImageBackground>
+                ))}
+              </ScrollView>
+            </Section>
           </>
         );
       default:
@@ -412,10 +492,23 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <View style={styles.hero}>
-        <Text style={styles.appName}>FC Nordsjælland Fan Hub</Text>
-        <Text style={styles.appTagline}>Byfællesskaber · Fraktioner · Kampdag</Text>
-      </View>
+      <ImageBackground source={{ uri: heroArt }} style={styles.hero} resizeMode="cover">
+        <View style={styles.heroOverlay} />
+        <View style={styles.heroContent}>
+          <View style={styles.logoRow}>
+            <Image source={{ uri: clubLogo }} style={styles.heroLogo} />
+            <View style={styles.logoDivider} />
+            <Image source={{ uri: awayLogo }} style={styles.heroLogo} />
+          </View>
+          <Text style={styles.appName}>FC Nordsjælland Fan Hub</Text>
+          <Text style={styles.appTagline}>Byfællesskaber · Fraktioner · Kampdag</Text>
+          <View style={styles.heroBadges}>
+            <Pill label="Næste kamp · 2. nov" />
+            <Pill label="90+ billeder fra tribunen" />
+            <Pill label="Fællesture · Tifo · Samkørsel" />
+          </View>
+        </View>
+      </ImageBackground>
       <View style={styles.tabBar}>
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
@@ -440,23 +533,52 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f6f7fb',
+    backgroundColor: '#eef1f7',
   },
   hero: {
-    backgroundColor: accent,
-    paddingTop: 56,
-    paddingBottom: 16,
+    paddingTop: 64,
+    paddingBottom: 22,
     paddingHorizontal: 20,
+    position: 'relative',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: darkOverlay,
+  },
+  heroContent: {
+    position: 'relative',
+    gap: 10,
   },
   appName: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
   },
   appTagline: {
-    color: '#ffe8ef',
-    marginTop: 4,
-    fontSize: 14,
+    color: '#f6d5df',
+    marginTop: 2,
+    fontSize: 15,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoDivider: {
+    height: 32,
+    width: 1,
+    backgroundColor: '#ffffff80',
+  },
+  heroLogo: {
+    height: 48,
+    width: 48,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  heroBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   tabBar: {
     flexDirection: 'row',
@@ -530,6 +652,28 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 6,
   },
+  cardImage: {
+    height: 140,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  cardImageRadius: {
+    borderRadius: 10,
+  },
+  cardImageOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+    padding: 10,
+  },
+  cardImageLabel: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -587,5 +731,57 @@ const styles = StyleSheet.create({
   },
   stack: {
     gap: 8,
+  },
+  crestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  crestBox: {
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  crest: {
+    height: 54,
+    width: 54,
+  },
+  vs: {
+    color: accent,
+    fontWeight: '800',
+    fontSize: 18,
+  },
+  galleryRow: {
+    gap: 12,
+    paddingRight: 6,
+  },
+  galleryCard: {
+    width: 220,
+    height: 160,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#ffffff55',
+  },
+  galleryImage: {
+    borderRadius: 16,
+  },
+  galleryOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  galleryTitle: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  galleryCaption: {
+    color: '#e8eaf1',
+    marginTop: 4,
+    fontSize: 12,
   },
 });
