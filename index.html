@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FC Nordsjælland Fan Hub · Web preview</title>
+    <style>
+      :root {
+        --accent: #d50032;
+        --muted: #e8ecf0;
+        --text-primary: #0c1a2b;
+        --text-secondary: #3d4a5c;
+        --bg: #f6f7fb;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: var(--text-primary);
+      }
+
+      .app {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .hero {
+        background: var(--accent);
+        padding: 56px 20px 16px;
+        color: #fff;
+      }
+
+      .app-name {
+        font-weight: 800;
+        font-size: 24px;
+        margin: 0;
+      }
+
+      .app-tagline {
+        margin: 4px 0 0;
+        color: #ffe8ef;
+        font-size: 14px;
+      }
+
+      .tab-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+        background: #fff;
+        border-bottom: 1px solid var(--muted);
+      }
+
+      .tab-button {
+        border: 1px solid transparent;
+        background: var(--muted);
+        color: var(--text-secondary);
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.12s ease;
+      }
+
+      .tab-button.active {
+        border-color: var(--accent);
+        background: #fff;
+        color: var(--accent);
+      }
+
+      .content {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        padding-bottom: 40px;
+      }
+
+      .section {
+        background: #fff;
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 2px 6px rgba(12, 26, 43, 0.05);
+        border: 1px solid var(--muted);
+        display: grid;
+        gap: 8px;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      .divider {
+        flex: 1;
+        height: 1px;
+        background: var(--muted);
+      }
+
+      .card {
+        border: 1px solid var(--muted);
+        background: #fdfdfd;
+        border-radius: 12px;
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .card-header {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .card-subtitle {
+        margin: 2px 0 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+
+      .card-meta {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: #5b6a7e;
+      }
+
+      .card-badge {
+        background: var(--accent);
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        background: #f3f5f9;
+        border: 1px solid var(--muted);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 600;
+      }
+
+      .caption {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 18px;
+        margin: 0;
+      }
+
+      .stack {
+        display: grid;
+        gap: 8px;
+      }
+
+      @media (min-width: 960px) {
+        .content {
+          max-width: 900px;
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <h1 class="app-name">FC Nordsjælland Fan Hub</h1>
+        <p class="app-tagline">Byfællesskaber · Fraktioner · Kampdag</p>
+      </header>
+      <nav class="tab-bar" id="tabBar"></nav>
+      <main class="content" id="content" aria-live="polite"></main>
+    </div>
+
+    <script type="module">
+      const tabs = [
+        { key: "home", label: "Hjem" },
+        { key: "communities", label: "Byfællesskaber" },
+        { key: "factions", label: "Fraktioner" },
+        { key: "matchday", label: "Kampdag" },
+        { key: "inbox", label: "Indbakke" },
+        { key: "profile", label: "Profil" },
+      ];
+
+      const match = {
+        opponent: "Brøndby IF",
+        datetime: "Lør 2. nov · 16:00",
+        venue: "Right to Dream Park",
+        focus: ["Superliga", "Hjemmebane"],
+      };
+
+      const communities = [
+        {
+          name: "Ganløse",
+          members: 128,
+          heading: "13 tager afsted til næste kamp",
+          highlights: ["Samling på torvet 13:30", "2 lift ledige"],
+        },
+        {
+          name: "Farum",
+          members: 342,
+          heading: "Fælles afgang fra stationen 14:45",
+          highlights: ["“Kom alene”-venligt", "3 events i dag"],
+        },
+        {
+          name: "Hillerød",
+          members: 210,
+          heading: "Udebanetur til Aarhus planlægges",
+          highlights: ["2 samkørsler åbne", "Afstemning om fanmarch"],
+        },
+      ];
+
+      const factions = [
+        {
+          name: "Wild Tigers",
+          members: 512,
+          motto: "Sektion C · Høj energi · Tifo & chants",
+          channels: ["#kampdag", "#sange", "#tifo"],
+          setlist: ["FCN – Vi er her igen", "Nord som aldrig før", "Alle mand på dæk"],
+        },
+        {
+          name: "Mild Fathers",
+          members: 94,
+          motto: "Familietribunen · Rolig stemning · Hyggelige ture",
+          channels: ["#kampdag", "#planlægning", "#familie"],
+          setlist: ["For Farum og for familien", "Vi står sammen", "Klapsang til pausen"],
+        },
+      ];
+
+      const events = {
+        ganlose: [
+          {
+            title: "Samling i Ganløse før kamp",
+            time: "13:30 · Ganløse Torv",
+            tags: ["Lokalt", "Velkommen alene"],
+            attendees: 18,
+          },
+          {
+            title: "Fælles afgang med bil",
+            time: "14:15 · 3 pladser",
+            tags: ["Samkørsel"],
+            attendees: 6,
+          },
+          {
+            title: "Efterkamp på Farum Kro",
+            time: "18:30 · “Vi fejrer sejren”",
+            tags: ["Efterkamp"],
+            attendees: 12,
+          },
+        ],
+        matchday: [
+          {
+            title: "Indgang 1 · Fanrute",
+            time: "15:20 · March fra stationen",
+            tags: ["Stadion", "Offentlig"],
+            attendees: 44,
+          },
+          {
+            title: "Wild Tigers · Tifo brief",
+            time: "14:45 · Sektion C indgang",
+            tags: ["Fraktion", "Read-only info"],
+            attendees: 60,
+          },
+        ],
+      };
+
+      const inbox = [
+        { title: "Ny fraktion opdatering", detail: "Wild Tigers har pin’et setlisten for Brøndby-kampen." },
+        { title: "Lift tilbudt fra Ganløse", detail: "Jacob: 2 pladser, afgang 14:10." },
+        { title: "Nyt event", detail: "Efterkamp på Farum Kro er oprettet." },
+        { title: "Notifikationer", detail: "Du har nye beskeder i #kampdag (Wild Tigers)." },
+      ];
+
+      const songs = [
+        {
+          title: "FCN – Vi er her igen",
+          tags: ["Tempo: høj", "Sektion C"],
+          body: "Vi er FC Nordsjælland, vi står sammen skulder ved skulder ...",
+        },
+        {
+          title: "For Farum og for familien",
+          tags: ["Rolig", "Familietribunen"],
+          body: "For Farum, for fællesskabet, vi synger højt for vores hold ...",
+        },
+      ];
+
+      const featureFlags = {
+        songbookEnabled: true,
+        factionsPublic: true,
+        readOnlyChannels: true,
+        remoteConfigDoc: "config/app",
+      };
+
+      const contentEl = document.getElementById("content");
+      const tabBarEl = document.getElementById("tabBar");
+
+      const pill = (label) => `<span class="pill">${label}</span>`;
+
+      const pillRow = (items) => `<div class="pill-row">${items.map(pill).join("")}</div>`;
+
+      const card = ({ title, subtitle, meta, highlight, body }) => `
+        <article class="card">
+          <div class="card-header">
+            <div style="flex:1">
+              <h3 class="card-title">${title}</h3>
+              ${subtitle ? `<p class="card-subtitle">${subtitle}</p>` : ""}
+              ${meta ? `<p class="card-meta">${meta}</p>` : ""}
+            </div>
+            ${highlight ? `<span class="card-badge">${highlight}</span>` : ""}
+          </div>
+          ${body ?? ""}
+        </article>
+      `;
+
+      const section = (title, body) => `
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">${title}</h2>
+            <div class="divider" aria-hidden="true"></div>
+          </div>
+          ${body}
+        </section>
+      `;
+
+      const renderHome = () => {
+        const nextMatch = card({
+          title: `FCN vs ${match.opponent}`,
+          subtitle: match.datetime,
+          meta: match.venue,
+          body: `
+            <div style="display:grid; gap:8px">
+              ${pillRow(match.focus)}
+              <p class="caption">Tryk “Se kampdag” i appen for events og fanruter.</p>
+            </div>
+          `,
+        });
+
+        const communityCard = card({
+          title: "Ganløse",
+          subtitle: "Byfællesskab · Offentlig",
+          meta: "13 tager afsted · 2 samkørsler",
+          highlight: "Fokus",
+          body: `
+            <div style="display:grid; gap:8px">
+              ${pillRow(["“Kom alene”-venligt", "Events i dag: 3"])}
+              <p class="caption">Brug “Jeg tager afsted” for at tælle op og foreslå samkørsel.</p>
+            </div>
+          `,
+        });
+
+        const activeStack = `
+          <div class="stack">
+            ${card({ title: "Indgang 1 · Fanrute", subtitle: "15:20 · March fra stationen", meta: "44 kommer" })}
+            ${card({ title: "Efterkamp på Farum Kro", subtitle: "18:30", meta: "12 kommer" })}
+            ${card({ title: "Wild Tigers #kampdag", subtitle: "Nye beskeder", meta: "Setliste opdateret" })}
+          </div>
+        `;
+
+        return [
+          section("Næste kamp", nextMatch),
+          section("Mit fællesskab", communityCard),
+          section("Mine aktive ting", activeStack),
+        ].join("");
+      };
+
+      const renderCommunities = () => {
+        const list = communities
+          .map((community) =>
+            card({
+              title: community.name,
+              subtitle: `${community.members} medlemmer`,
+              meta: community.heading,
+              highlight: "Åbent",
+              body: pillRow(community.highlights),
+            }),
+          )
+          .join("");
+
+        const creator = card({
+          title: "By / Område",
+          subtitle: "Undgå dubletter · fx “Ganløse (Egedal)”",
+          meta: "Offentlig visning · login kræves for at skrive",
+          body: pillRow(["Captain + co-captain", "Rapportér/Skjul", "Pinned regler"]),
+        });
+
+        return [section("Byfællesskaber (offentlige)", list), section("Opret nyt fællesskab", creator)].join("");
+      };
+
+      const renderFactions = () => {
+        const list = factions
+          .map((faction) =>
+            card({
+              title: faction.name,
+              subtitle: `${faction.members} medlemmer`,
+              meta: faction.motto,
+              highlight: "Alle kan se",
+              body: `
+                <div style="display:grid; gap:8px">
+                  ${pillRow(faction.channels)}
+                  <p class="caption">Sangbog & setlist til kampdag:</p>
+                  ${pillRow(faction.setlist)}
+                </div>
+              `,
+            }),
+          )
+          .join("");
+
+        const songbook = songs
+          .map((song) =>
+            card({
+              title: song.title,
+              subtitle: song.tags.join(" · "),
+              body: `<p class="caption">${song.body}</p>`
+            }),
+          )
+          .join("");
+
+        return [section("Fanfraktioner (offentlige)", list), section("Sangbog (offentlig visning)", songbook)].join("");
+      };
+
+      const renderMatchday = () => {
+        const filters = pillRow(["Før kamp", "Ved stadion", "Efterkamp", "Kun med “Kom alene”"]);
+
+        const ganloseList = events.ganlose
+          .map((item) =>
+            card({
+              title: item.title,
+              subtitle: item.time,
+              meta: `${item.attendees} kommer`,
+              body: pillRow(item.tags),
+            }),
+          )
+          .join("");
+
+        const stadiumList = events.matchday
+          .map((item) =>
+            card({
+              title: item.title,
+              subtitle: item.time,
+              meta: `${item.attendees} kommer`,
+              body: pillRow(item.tags),
+            }),
+          )
+          .join("");
+
+        return [
+          section("Filter: Mit fællesskab (Ganløse)", filters),
+          section("Events · Ganløse + Offentligt", ganloseList),
+          section("Events · Stadion/Fraktion", stadiumList),
+        ].join("");
+      };
+
+      const renderInbox = () => {
+        const inboxCards = inbox
+          .map((item) => card({ title: item.title, subtitle: item.detail }))
+          .join("");
+
+        const tools = card({
+          title: "Read-only kanaler",
+          subtitle: "fx #info-fra-capo",
+          meta: "Slå til på fraktioner",
+          body: pillRow(["Skjul indhold hurtigt", "Rapportér beskeder", "Rate limit (MVP senere)"]),
+        });
+
+        return [section("Indbakke", inboxCards), section("Moderator tools", tools)].join("");
+      };
+
+      const renderProfile = () => {
+        const profileCard = card({
+          title: "Bruger",
+          subtitle: "Alex, Ganløse · “Kommer ofte alene”",
+          meta: "Captain i Ganløse",
+          body: pillRow(["Mine fællesskaber: 2", "Mine fraktioner: 1", "Badges: Stemningsskaber"]),
+        });
+
+        const flags = card({
+          title: "Tænd/sluk uden app update",
+          subtitle: `Gemmes i Firestore: ${featureFlags.remoteConfigDoc}`,
+          meta: "Bruges til rollout & kill switch",
+          body: `
+            <div style="display:grid; gap:8px">
+              ${pillRow([
+                `songbookEnabled: ${featureFlags.songbookEnabled}`,
+                `factionsPublic: ${featureFlags.factionsPublic}`,
+                `readOnlyChannels: ${featureFlags.readOnlyChannels}`,
+              ])}
+              <p class="caption">Bruges sammen med EAS Update til små UI-ændringer. Større ting → ny App Store build.</p>
+            </div>
+          `,
+        });
+
+        const release = `
+          ${card({
+            title: "Hurtige rettelser",
+            subtitle: "EAS Update",
+            meta: "staging → production",
+            body: pillRow(["Bugfix uden App Store", "Tekst/UI-justering"]),
+          })}
+          ${card({
+            title: "Store ændringer",
+            subtitle: "Ny version til App Store",
+            meta: "Byg med EAS Build",
+            body: pillRow(["Store features", "Native SDK"]),
+          })}
+        `;
+
+        return [section("Profil", profileCard), section("Feature flags / konfiguration", flags), section("Udgivelsesflow", release)].join("");
+      };
+
+      const renderers = {
+        home: renderHome,
+        communities: renderCommunities,
+        factions: renderFactions,
+        matchday: renderMatchday,
+        inbox: renderInbox,
+        profile: renderProfile,
+      };
+
+      let activeTab = "home";
+
+      const renderTabs = () => {
+        tabBarEl.innerHTML = tabs
+          .map(
+            (tab) => `
+              <button class="tab-button ${tab.key === activeTab ? "active" : ""}" data-key="${tab.key}">
+                ${tab.label}
+              </button>
+            `,
+          )
+          .join("");
+
+        tabBarEl.querySelectorAll("button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activeTab = btn.dataset.key;
+            renderTabs();
+            renderContent();
+          });
+        });
+      };
+
+      const renderContent = () => {
+        const renderer = renderers[activeTab];
+        contentEl.innerHTML = renderer ? renderer() : "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+
+      renderTabs();
+      renderContent();
+    </script>
+  </body>
+</html>
